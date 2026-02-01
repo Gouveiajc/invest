@@ -74,12 +74,46 @@ def inserir_registro_inv01(conn, cod, desc, atv, per):
     )
     conn.commit()
 
+def atualizar_registro_inv01(conn, cod, desc, atv, per):
+     
+    #Atualiza um registro na tabela INV01.
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE inv01
+            SET inv01_02 = ?, inv01_01 = ?, inv01_20 = ?
+            WHERE inv01_05 = ?
+        """, (desc, atv, per, cod))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Erro ao alterar registro: {e}")
+
 def excluir_registro_inv01(conn, cod):
     cursor = conn.cursor()
     cursor.execute("DELETE FROM inv01 WHERE inv01_05=?", (cod,))
     conn.commit()
 
-def soma_perc_tipo(conn, tipo_id): 
+def soma_perc_inv01(conn, tipo_id): 
     cursor = conn.cursor() 
     cursor.execute(""" SELECT COALESCE(SUM(INV01_20), 0) FROM INV01 WHERE INV01_01 = ? """, (tipo_id,)) 
     return float(cursor.fetchone()[0]) 
+
+#Tabela INV02
+def listar_registros_inv02(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT inv02_06, inv02_02, inv02_01, inv02_05, inv02_07, inv02_08, inv02_09, inv02_10, inv02_17, inv02_18, inv02_20, inv02_21 FROM inv02")
+    return cursor.fetchall()
+
+def existe_codigo_inv02(conn, cod):
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM inv02 WHERE inv02_06=?", (cod,))
+    return cursor.fetchone()[0] > 0
+
+def inserir_registro_inv02(conn, cod, desc, tipo, segm, atv, data, peri, obs):
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO inv02 (inv02_06, inv02_02, inv02_01, inv02_05, inv02_07, inv02_08, inv02_09, inv02_10, inv02_17, inv02_18, inv02_20, inv02_21) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        (cod, desc, tipo, segm, 0.00, 0.00, 0.00, 0.00, atv, data, peri, obs)
+    )
+    conn.commit()
+    

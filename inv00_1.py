@@ -49,3 +49,30 @@ def validar_campos_inv01(cod, desc, atv, per):
 
      # Tudo OK
     return True, "", ""
+
+def validar_campos_inv02(cod, desc, tipo, segm, atv, data, peri):
+
+    # Campos obrigatórios
+    if not cod:
+        return False, "Código não pode estar vazio.", "cod"
+
+    if not desc:
+        return False, "Descrição não pode estar vazia.", "desc"
+
+    if not tipo:
+        return False, "Tipo Ativo não pode estar vazio.", "tipo"
+
+    if not segm:
+        return False, "Segmento do Ativo não pode estar vazia.", "segm"
+
+    if not atv:
+        return False, "Ativo no Exterior não pode estar vazio.", "atv"
+
+    if not data:
+        return False, "Data não pode estar vazia.", "data"
+
+    if not peri:
+        return False, "Percentual a Investir não pode estar vazio.", "peri"
+
+    # Tudo OK
+    return True, "", ""
