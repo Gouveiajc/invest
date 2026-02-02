@@ -9,6 +9,7 @@ from tkinter import ttk
 from tkinter import messagebox
 import inv00_0      # módulo de banco de dados
 import inv03_02     # módulo de inclusão
+import inv03_03     # módulo de alteração
 
 def abrir_lista(root):
 
@@ -34,7 +35,7 @@ def abrir_lista(root):
     frame_botoes.pack(fill="x")
 
     ttk.Button(frame_botoes, text="INCLUIR", width=12,
-               command=lambda: inv03_02.abrir_janela_inv02(janela, tree) ).pack(side="left", padx=5)
+               command=lambda: inv03_02.abrir_janela_inv02(janela, tree)).pack(side="left", padx=5)
 
     ttk.Button(frame_botoes, text="ALTERAR", width=12,
                command=lambda: inv03_03.alterar_registro(tree)).pack(side="left", padx=5)
@@ -51,12 +52,24 @@ def abrir_lista(root):
     frame_grid = ttk.Frame(janela, padding=10)
     frame_grid.pack(fill="both", expand=True)
 
-
-    # Label para mensagens
     label_aviso = ttk.Label(frame_grid, text="", foreground="red", font=("Arial", 10, "bold"))
     label_aviso.pack(anchor="w", pady=(0, 5))
 
-    colunas = ("INV02_06", "INV02_02", "INV02_01", "INV02_05", "INV02_07", "INV02_08", "INV02_09", "INV02_10", "INV02_17", "INV02_18", "INV02_20", "INV02_21")
+    # ORDEM DAS COLUNAS — ALINHADA COM O SELECT CORRIGIDO
+    colunas = (
+        "INV02_06",  # 0 Código
+        "INV02_02",  # 1 Descrição
+        "INV02_01",  # 2 Tipo Ativo
+        "INV02_05",  # 3 Segmento
+        "INV02_07",  # 4 Quantidade
+        "INV02_08",  # 5 Custo Médio
+        "INV02_09",  # 6 Custo Aquisição
+        "INV02_17",  # 7 Ativo Exterior
+        "INV02_10",  # 8 Custo Aquisição US$
+        "INV02_18",  # 9 Data Inclusão
+        "INV02_20",  # 10 Percentual
+        "INV02_21"   # 11 Observação
+    )
 
     tree = ttk.Treeview(frame_grid, columns=colunas, show="headings", height=15)
 
@@ -69,20 +82,20 @@ def abrir_lista(root):
     tree.heading("INV02_09", text="Custo Aquisição")
     tree.heading("INV02_17", text="Ativo Exterior")
     tree.heading("INV02_10", text="Custo Aquisição US$")
-    tree.heading("INV02_18", text="Data da Compra")
+    tree.heading("INV02_18", text="Data da Inclusão")
     tree.heading("INV02_20", text="% Investir")
-    tree.heading("INV02_21", text="Obs.:")
-  
+    tree.heading("INV02_21", text="Obs.")
+
     tree.column("INV02_06", width=80)
     tree.column("INV02_02", width=250)
     tree.column("INV02_01", width=80)
     tree.column("INV02_05", width=100)
-    tree.column("INV02_07", width=80)
+    tree.column("INV02_07", width=90)
     tree.column("INV02_08", width=150)
     tree.column("INV02_09", width=150)
-    tree.column("INV02_17", width=80)
-    tree.column("INV02_10", width=100)
-    tree.column("INV02_18", width=100)
+    tree.column("INV02_17", width=100)
+    tree.column("INV02_10", width=150)
+    tree.column("INV02_18", width=120)
     tree.column("INV02_20", width=100)
     tree.column("INV02_21", width=250)
 
@@ -93,19 +106,18 @@ def abrir_lista(root):
     # -----------------------------
     conn = inv00_0.conectar()
     registros = inv00_0.listar_registros_inv02(conn)
+    conn.close()
 
     for reg in registros:
         tree.insert("", tk.END, values=reg)
 
-    conn.close()
 
 # -----------------------------
-#       FUNÇÕES AUXILIARES
+#       FUNÇÃO DELETAR
 # -----------------------------
-
 def deletar_registro(tree):
     item = tree.selection()
-    janela = tree.master  # janela do grid
+    janela = tree.master
 
     if not item:
         messagebox.showwarning("Atenção", "Selecione um registro para deletar.", parent=janela)
@@ -113,26 +125,26 @@ def deletar_registro(tree):
 
     valores = tree.item(item, "values")
     codigo = valores[0]
-    desc   = valores[1]
+    desc = valores[1]
 
-    if messagebox.askyesno("Confirmar", f"Excluir o registro: \nCódigo: {codigo} \nDescrição: {desc}?", parent=janela):
+    if messagebox.askyesno("Confirmar", f"Excluir o registro:\nCódigo: {codigo}\nDescrição: {desc}?", parent=janela):
+
         conn = inv00_0.conectar()
         inv00_0.excluir_registro_inv02(conn, codigo)
         conn.close()
 
-        # Limpa o grid
+        # Recarregar grid
         for i in tree.get_children():
             tree.delete(i)
 
-        # Recarrega os dados do banco
         conn = inv00_0.conectar()
         registros = inv00_0.listar_registros_inv02(conn)
         conn.close()
+
         for reg in registros:
             tree.insert("", tk.END, values=reg)
 
         messagebox.showinfo("Sucesso", "Registro excluído com sucesso!", parent=janela)
 
-    # Devolve o foco para a janela do grid
     janela.lift()
     janela.focus_force()

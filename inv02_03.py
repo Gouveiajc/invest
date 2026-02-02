@@ -4,9 +4,6 @@ JC 01/2026
 Ver 1
 Banco de Dados inv.db
 Tabela inv01
-*************************************************************
-PAREI NO DELETAR O REGISTRO DE SEGMENTO         PAREI NO DELETAR O REGISTRO DE SEGMENTO         PAREI NO DELETAR O REGISTRO DE SEGMENTO
-**************************************************************
 '''
 import tkinter as tk
 from tkinter import ttk, messagebox

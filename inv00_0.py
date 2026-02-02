@@ -101,7 +101,7 @@ def soma_perc_inv01(conn, tipo_id):
 #Tabela INV02
 def listar_registros_inv02(conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT inv02_06, inv02_02, inv02_01, inv02_05, inv02_07, inv02_08, inv02_09, inv02_10, inv02_17, inv02_18, inv02_20, inv02_21 FROM inv02")
+    cursor.execute("SELECT inv02_06, inv02_02, inv02_01, inv02_05, inv02_07, inv02_08, inv02_09, inv02_17, inv02_10, inv02_18, inv02_20, inv02_21 FROM inv02")
     return cursor.fetchall()
 
 def existe_codigo_inv02(conn, cod):

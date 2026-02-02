@@ -100,7 +100,7 @@ def abrir_janela_inv02(root, tree):
 
     # Custo Aquisição US$ como Entry inicialmente desabilitado se Ativo Exterior for N
     ttk.Label(frame, text="Custo Aquisição US$:").grid(row=8, column=0, sticky="w", pady=5)
-    entry_cusus = ttk.Entry(frame, width=30,state="disabled")
+    entry_cusus = ttk.Entry(frame, width=50,state="disabled")
     entry_cusus.grid(row=8, column=1, sticky="w", pady=5)
    
     ttk.Label(frame, text="Data da Inclusão:").grid(row=9, column=0, sticky="w", pady=5)
