@@ -166,6 +166,94 @@ def abrir_janela_alteracao(root, tree, valores):
     # SALVAR
     # -----------------------------
     def salvar():
+        cod = valores[0]              # código do registro original
+        desc = entry_descricao.get().strip()
+        perc = entry_peri.get().strip()
+        obs = entry_obs.get().strip()
+
+        # Tipo selecionado na tela (novo tipo)
+        tipo_selecionado = combo_tipo.get()
+        if not tipo_selecionado:
+            messagebox.showwarning("Atenção", "Selecione um Tipo de Ativo.", parent=janela)
+            return
+
+        tipo_id_novo = tipo_selecionado.split(" - ")[0]
+
+        # Tipo original (que estava no grid antes de abrir a tela)
+        # ajuste o índice conforme sua tupla 'valores'
+        tipo_id_antigo = valores[3]   # EXEMPLO: se o tipo original estiver na posição 3
+
+        ok, mensagem, campo = inv00_1.validar_campos_inv01(cod, desc, tipo_id_novo, perc)
+        if not ok:
+            messagebox.showwarning("Atenção", mensagem, parent=janela)
+            return
+
+        try:
+            perc_float = float(perc.replace(",", "."))
+        except ValueError:
+            messagebox.showwarning("Atenção", "Percentual inválido!", parent=janela)
+            return
+
+        # Percentual antigo (que estava gravado antes da alteração)
+        try:
+            perc_antigo = float(str(valores[10]).replace(",", "."))
+        except Exception:
+            perc_antigo = 0.0  # fallback para não quebrar
+
+        conn = inv00_0.conectar()
+
+        try:
+            # Se o tipo NÃO mudou:
+            if tipo_id_novo == tipo_id_antigo:
+                # soma de todos os percentuais daquele tipo, incluindo o atual
+                soma_atual = inv00_0.soma_perc_inv02(conn, tipo_id_novo)
+                # remove o percentual antigo desse registro
+                soma_sem_atual = soma_atual - perc_antigo
+                nova_soma = soma_sem_atual + perc_float
+            else:
+                # tipo mudou: não faz sentido subtrair o percentual antigo
+                # da soma do novo tipo; o antigo já pertence a outro grupo
+                soma_atual_novo_tipo = inv00_0.soma_perc_inv02(conn, tipo_id_novo)
+                nova_soma = soma_atual_novo_tipo + perc_float
+
+            if nova_soma > 100:
+                msg = f"A soma dos percentuais para o tipo {tipo_id_novo} ficará {nova_soma:.2f}%.\nDeseja continuar?"
+                if not messagebox.askyesno("Confirmação", msg, parent=janela):
+                    conn.close()
+                    return
+
+            # Atualiza o registro
+            inv00_0.atualizar_registro_inv02(conn, cod, desc, tipo_id_novo, perc_float,obs)
+
+        finally:
+            conn.close()
+
+
+        # Atualiza o grid
+        for item in tree.get_children():
+            valores_tree = tree.item(item, "values")
+            if valores_tree[0] == cod:
+                tree.item(item, values=(
+                    cod, desc, tipo_id_novo, valores[3], valores[4], valores[5],
+                    valores[6], valores[7], valores[8], valores[9],
+                    perc_float, valores[11]
+                ))
+                break
+
+        messagebox.showinfo("Sucesso", "Registro alterado com sucesso!", parent=janela)
+        janela.destroy()
+
+    # BOTÕES
+    frame_botoes = ttk.Frame(janela, padding=10)
+    frame_botoes.pack()
+
+    ttk.Button(frame_botoes, text="Salvar", width=12, command=salvar).grid(row=0, column=0, padx=10)
+    ttk.Button(frame_botoes, text="Cancelar", width=12, command=janela.destroy).grid(row=0, column=1, padx=10)
+
+    entry_descricao.focus()
+
+    '''
+    def salvar():
         cod = valores[0]
         desc = entry_descricao.get().strip()
         perc = entry_peri.get().strip()
@@ -201,28 +289,4 @@ def abrir_janela_alteracao(root, tree, valores):
 
         inv00_0.atualizar_registro_inv01(conn, cod, desc, tipo_id, perc_float)
         conn.close()
-
-        # Atualiza o grid
-        for item in tree.get_children():
-            valores_tree = tree.item(item, "values")
-            if valores_tree[0] == cod:
-                tree.item(item, values=(
-                    cod, desc, tipo_id, valores[3], valores[4], valores[5],
-                    valores[6], valores[7], valores[8], valores[9],
-                    perc_float, valores[11]
-                ))
-                break
-
-        messagebox.showinfo("Sucesso", "Registro alterado com sucesso!", parent=janela)
-        janela.destroy()
-
-    # BOTÕES
-    frame_botoes = ttk.Frame(janela, padding=10)
-    frame_botoes.pack()
-
-    ttk.Button(frame_botoes, text="Salvar", width=12, command=salvar).grid(row=0, column=0, padx=10)
-    ttk.Button(frame_botoes, text="Cancelar", width=12, command=janela.destroy).grid(row=0, column=1, padx=10)
-
-    entry_descricao.focus()
-
-
+'''

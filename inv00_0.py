@@ -116,4 +116,74 @@ def inserir_registro_inv02(conn, cod, desc, tipo, segm, atv, data, peri, obs):
         (cod, desc, tipo, segm, 0.00, 0.00, 0.00, 0.00, atv, data, peri, obs)
     )
     conn.commit()
-    
+
+def soma_perc_inv02(conn, tipo_id):
+    cursor = conn.cursor()
+    cursor.execute(""" SELECT COALESCE(SUM(INV02_20), 0) FROM INV02 WHERE INV02_05 = ? """, (tipo_id,))
+    resultado = cursor.fetchone()
+    return float(resultado[0]) if resultado else 0.0
+
+def atualizar_registro_inv02(conn, cod, desc, tipo_id, per,obs):
+     
+    #Atualiza um registro na tabela INV01.
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE inv02 SET inv02_05 = ?, inv02_02 = ?, inv02_20 = ?, inv02_21 = ? WHERE inv02_06 = ?
+        """, (tipo_id, desc, per, obs, cod))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Erro ao alterar registro: {e}")
+
+def excluir_registro_inv02(conn, cod):
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM inv02 WHERE inv02_06=?", (cod,))
+    conn.commit()
+
+#Tabela INV03
+def listar_registros_inv03(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT inv03_06, inv03_02, inv03_12, inv03_07, inv03_13, inv03_14, inv03_15, inv03_22, inv03_16, inv03_18, inv03_19 FROM inv03")
+    return cursor.fetchall()
+
+def inserir_registro_inv03(conn, registro):
+    """
+    Insere um registro na tabela INV03.
+    'registro' é um dicionário contendo todos os campos da tela.
+    """
+
+    sql = """
+        INSERT INTO INV03 (
+            INV03_06,  -- Código do ativo
+            INV03_02,  -- Descrição
+            INV03_12,  -- Tipo de movimento
+            INV03_07,  -- Quantidade
+            INV03_13,  -- Valor Unitário
+            INV03_14,  -- Valor Total R$
+            INV03_15,  -- Cotação US$
+            INV03_22,  -- Valor Unitário US$
+            INV03_16,  -- Valor Total US$
+            INV03_18,  -- Data Inclusão
+            INV03_19   -- Nota Corretagem
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    valores = (
+        registro["INV03_06"],
+        registro["INV03_02"],
+        registro["INV03_12"],
+        registro["INV03_07"],
+        registro["INV03_13"],
+        registro["INV03_14"],
+        registro["INV03_15"],
+        registro["INV03_22"],
+        registro["INV03_16"],
+        registro["INV03_18"],
+        registro["INV03_19"]
+    )
+
+    cursor = conn.cursor()
+    cursor.execute(sql, valores)
+    conn.commit()
+

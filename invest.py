@@ -9,6 +9,7 @@ from tkinter import Menu
 import inv01_01
 import inv02_01
 import inv03_01
+import inv21_01
 
 
 class App:
@@ -32,7 +33,6 @@ class App:
         menu_bar = Menu(self.root)
 
         # MENU CADASTRO
-        
         menu_cadastro = Menu(menu_bar, tearoff=0)
         menu_cadastro.add_command(
             label="Tipo Ativos",
@@ -52,7 +52,15 @@ class App:
         
         # MENU MANUTENÇÃO
         menu_manutencao = Menu(menu_bar, tearoff=0)
-        menu_manutencao.add_command(label="Manutenção Geral", command=self.manutencao)
+        menu_manutencao.add_command(
+            label="Movimento", 
+            command=lambda: inv21_01.abrir_lista(self.root)
+            )
+        
+        menu_manutencao.add_command(
+            label="Consolidar", 
+            command=self.manutencao
+            )
         menu_bar.add_cascade(label="Manutenção", menu=menu_manutencao)
 
         # MENU IMPRESSÃO

@@ -76,3 +76,32 @@ def validar_campos_inv02(cod, desc, tipo, segm, atv, data, peri):
 
     # Tudo OK
     return True, "", ""
+
+
+def validar_campos_inv03(reg):
+  
+    # Código
+    if not reg["INV03_06"]:
+        return "Código não pode ser vazio."
+
+    # Descrição
+    if not reg["INV03_02"]:
+        return "Descrição não pode ser vazia."
+
+    # Tipo de movimento
+    if reg["INV03_12"] not in ("C", "D", "V"):
+        return "Tp Mov. deve ser C, D ou V."
+
+    # Quantidade
+    try:
+        if float(reg["INV03_07"]) <= 0:
+            return "Quantidade deve ser maior que zero."
+    except:
+        return "Quantidade inválida."
+    
+    #Data
+    if not reg["INV03_18"]:
+        return "Data não pode ser vazia."
+
+    # Se chegou até aqui, está tudo ok
+    return None

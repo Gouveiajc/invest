@@ -5,13 +5,6 @@ Ver 1
 Banco de Dados inv.db
 Tabela inv01
 '''
-#Codigo com as Sugestões do Gemini
-'''
-Lógica do if novo_total > 100: Agora o return acontece imediatamente se o usuário clicar em "Não", evitando o erro de variável não definida.
-Tratamento de Erros (try/except/finally): Garante que a conexão com o banco de dados seja fechada (conn.close()) mesmo se o programa travar no meio do processo.
-Flexibilidade Numérica: Adicionei .replace(',', '.') para evitar que o programa quebre se o usuário digitar o percentual com vírgula.
-Melhoria no to_uppercase: Adicionei icursor(posicao) para que, ao digitar, o cursor não pule para o final do campo toda vez que uma letra for convertida.
-'''
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
