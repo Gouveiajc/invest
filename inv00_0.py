@@ -140,6 +140,186 @@ def excluir_registro_inv02(conn, cod):
     cursor.execute("DELETE FROM inv02 WHERE inv02_06=?", (cod,))
     conn.commit()
 
+def atualizar_posicao_inv02(conn, codigo_ativo, tipo_mov, quantidade, total_rs, total_us, usa_dolar):
+    """
+    Atualiza posição do ativo para C, D ou V
+    Inclui controle em R$ e US$ quando ativo do exterior.
+    """
+
+    cursor = conn.cursor()
+
+    # Captura posição atual
+    cursor.execute("""
+        SELECT INV02_07, INV02_09, INV02_08,
+               INV02_10, INV02_20
+        FROM INV02
+        WHERE INV02_06 = ?
+    """, (codigo_ativo,))
+    atual = cursor.fetchone()
+
+    if not atual:
+        return
+
+    qtd_atual, total_r_atual, preco_r_atual, total_us_atual, preco_us_atual = atual
+
+    if qtd_atual is None: qtd_atual = 0
+    if total_r_atual is None: total_r_atual = 0
+    if preco_r_atual is None: preco_r_atual = 0
+    if total_us_atual is None: total_us_atual = 0
+    if preco_us_atual is None: preco_us_atual = 0
+
+    # ================================
+    #      COMPRA / DESDOBRO
+    # ================================
+    if tipo_mov in ["C", "D"]:
+
+        nova_qtd = qtd_atual + quantidade
+        novo_total_r = total_r_atual + total_rs
+
+        if usa_dolar == "S":
+            novo_total_us = total_us_atual + total_us
+        else:
+            novo_total_us = 0
+
+        # preço médio R$
+        preco_r = novo_total_r / nova_qtd if nova_qtd > 0 else 0
+
+        # preço médio US$
+        if usa_dolar == "S":
+            preco_us = novo_total_us / nova_qtd if nova_qtd > 0 else 0
+        else:
+            preco_us = 0
+
+    # ================================
+    #               VENDA
+    # ================================
+    elif tipo_mov == "V":
+
+        # Custo proporcional R$
+        custo_saida_r = preco_r_atual * quantidade
+        nova_qtd = qtd_atual - quantidade
+        novo_total_r = total_r_atual - custo_saida_r
+
+        # Custo proporcional US$ (se ativo internacional)
+        if usa_dolar == "S":
+            custo_saida_us = preco_us_atual * quantidade
+            novo_total_us = total_us_atual - custo_saida_us
+        else:
+            novo_total_us = 0
+
+        # Recalcular preços médios
+        preco_r = novo_total_r / nova_qtd if nova_qtd > 0 else 0
+        preco_us = novo_total_us / nova_qtd if (nova_qtd > 0 and usa_dolar == "S") else 0
+
+    # Grava no banco
+    cursor.execute("""
+        UPDATE INV02 SET
+            INV02_07 = ?,
+            INV02_09 = ?,
+            INV02_08 = ?,
+            INV02_10 = ?,
+            INV02_20 = ?
+        WHERE INV02_06 = ?
+    """, (nova_qtd, novo_total_r, preco_r, novo_total_us, preco_us, codigo_ativo))
+
+    conn.commit()
+
+def reverter_posicao_inv02(conn, codigo_ativo, tipo_mov, quantidade, total_rs, total_us):
+    """
+    Reverte o impacto de um movimento excluído na tabela INV02.
+    COMPRA  (C) → subtrai quantidade e custo
+    DESDOBRO (D) → subtrai quantidade e custo
+    VENDA   (V) → soma quantidade e custo proporcional
+    Funciona com R$ e com US$ para ativos internacionais.
+    """
+
+    cursor = conn.cursor()
+
+    # Recupera posição atual do ativo
+    cursor.execute("""
+        SELECT INV02_07, INV02_09, INV02_08,
+               INV02_10, INV02_20, INV02_17
+        FROM INV02
+        WHERE INV02_06 = ?
+    """, (codigo_ativo,))
+    atual = cursor.fetchone()
+
+    if not atual:
+        return  # ativo não encontrado
+
+    qtd_atual, total_r_atual, preco_r_atual, total_us_atual, preco_us_atual, usa_dolar_flag = atual
+
+    if qtd_atual is None: qtd_atual = 0
+    if total_r_atual is None: total_r_atual = 0
+    if preco_r_atual is None: preco_r_atual = 0
+    if total_us_atual is None: total_us_atual = 0
+    if preco_us_atual is None: preco_us_atual = 0
+
+    usa_dolar = (usa_dolar_flag == "S")
+
+    # =====================================================
+    #  REGRAS DE REVERSÃO
+    # =====================================================
+
+    # ------------------------------------------
+    # COMPRA (C) ou DESDOBRO (D)
+    # DESFAZER = subtrair quantidade e custo
+    # ------------------------------------------
+    if tipo_mov in ["C", "D"]:
+
+        nova_qtd = qtd_atual - quantidade
+        novo_total_r = total_r_atual - total_rs
+
+        if usa_dolar:
+            novo_total_us = total_us_atual - total_us
+        else:
+            novo_total_us = 0
+
+    # ------------------------------------------
+    # VENDA (V)
+    # DESFAZER = somar quantidade e custo proporcional
+    # ------------------------------------------
+    elif tipo_mov == "V":
+
+        # custo proporcional (R$)
+        custo_r_retorno = preco_r_atual * quantidade
+        novo_total_r = total_r_atual + custo_r_retorno
+
+        # custo proporcional (US$)
+        if usa_dolar:
+            custo_us_retorno = preco_us_atual * quantidade
+            novo_total_us = total_us_atual + custo_us_retorno
+        else:
+            novo_total_us = 0
+
+        nova_qtd = qtd_atual + quantidade
+
+    # =====================================================
+    # Recalcular preços médios
+    # =====================================================
+    novo_preco_r = novo_total_r / nova_qtd if nova_qtd > 0 else 0
+
+    if usa_dolar:
+        novo_preco_us = novo_total_us / nova_qtd if nova_qtd > 0 else 0
+    else:
+        novo_preco_us = 0
+
+    # =====================================================
+    # Atualizar INV02
+    # =====================================================
+    cursor.execute("""
+        UPDATE INV02 SET
+            INV02_07 = ?,     -- quantidade
+            INV02_09 = ?,     -- custo total em R$
+            INV02_08 = ?,     -- preço médio em R$
+            INV02_10 = ?,     -- custo total em US$
+            INV02_20 = ?      -- preço médio em US$
+        WHERE INV02_06 = ?
+    """, (nova_qtd, novo_total_r, novo_preco_r,
+          novo_total_us, novo_preco_us, codigo_ativo))
+
+    conn.commit()
+
 #Tabela INV03
 def listar_registros_inv03(conn):
     cursor = conn.cursor()
@@ -185,5 +365,10 @@ def inserir_registro_inv03(conn, registro):
 
     cursor = conn.cursor()
     cursor.execute(sql, valores)
+    conn.commit()
+
+def excluir_registro_inv03(conn, id_registro):
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM INV03 WHERE INV03_00 = ?", (id_registro,))
     conn.commit()
 

@@ -10,6 +10,7 @@ from tkinter import ttk
 from tkinter import messagebox
 import inv00_0      # módulo de banco de dados
 import inv21_02
+import inv21_04
 
 def abrir_lista(root):
 
@@ -37,12 +38,12 @@ def abrir_lista(root):
     ttk.Button(frame_botoes, text="INCLUIR", width=12,
                command=lambda: inv21_02.abrir_janela_inv03(janela, tree) ).pack(side="left", padx=5)
 
-    ttk.Button(frame_botoes, text="ALTERAR", width=12,
-               command=lambda: inv21_03.alterar_registro(tree)).pack(side="left", padx=5)
+    #ttk.Button(frame_botoes, text="ALTERAR", width=12,
+    #           command=lambda: inv21_03.alterar_registro(tree)).pack(side="left", padx=5)
 
     ttk.Button(frame_botoes, text="DELETAR", width=12,
-               command=lambda: deletar_registro(tree)).pack(side="left", padx=5)
-
+               command=lambda: inv21_04.abrir_janela_inv03(janela, tree) ).pack(side="left", padx=5)
+    
     ttk.Button(frame_botoes, text="RETORNAR", width=12,
                command=janela.destroy).pack(side="right", padx=5)
 
