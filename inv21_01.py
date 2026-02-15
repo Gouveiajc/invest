@@ -58,10 +58,12 @@ def abrir_lista(root):
     label_aviso = ttk.Label(frame_grid, text="", foreground="red", font=("Arial", 10, "bold"))
     label_aviso.pack(anchor="w", pady=(0, 5))
 
-    colunas = ("INV03_06", "INV03_02", "INV03_12", "INV03_07", "INV03_13", "INV03_14", "INV03_15",  "INV03_22", "INV03_16", "INV03_18", "INV03_19")
+    colunas = ("INV03_00", "INV03_06", "INV03_02", "INV03_12", "INV03_07", "INV03_13", "INV03_14", "INV03_15",  "INV03_22", 
+               "INV03_16", "INV03_18", "INV03_19")
 
     tree = ttk.Treeview(frame_grid, columns=colunas, show="headings", height=15)
 
+    tree.heading("INV03_00", text="Id")
     tree.heading("INV03_06", text="Código")
     tree.heading("INV03_02", text="Descrição")
     tree.heading("INV03_12", text="Tp Mov.")
@@ -75,6 +77,7 @@ def abrir_lista(root):
     tree.heading("INV03_19", text="Nota Corretagem")
     
   
+    tree.column("INV03_00", width=60)
     tree.column("INV03_06", width=80)
     tree.column("INV03_02", width=250)
     tree.column("INV03_12", width=50)

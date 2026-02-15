@@ -1,4 +1,8 @@
-
+"""Exclusão de Movimentação
+Tabela INV03
+Módulo: inv21_04.py
+Fev/2026
+"""
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -7,29 +11,31 @@ import datetime
 
 
 def abrir_janela_inv03(root, tree):
-    """
-    Abre a janela de confirmação para exclusão do registro selecionado.
-    """
+    selecionado = tree.selection()
+    if not selecionado:
+        messagebox.showwarning("Atenção", "Nenhum registro selecionado.", parent=root)
+        return
 
-    janela = tk.Toplevel(root)
-    janela.title("Exclusão de Movimento")
-    janela.geometry("400x180")
-    janela.grab_set()
-    janela.bind("<Escape>", lambda e: janela.destroy())
+    item = tree.item(selecionado)
+    valores = item["values"]
 
-    frame = ttk.Frame(janela, padding=15)
-    frame.pack(fill="both", expand=True)
+    id_registro   = valores[0]
+    codigo_ativo  = valores[1]
+    descricao     = valores[2]
 
-    ttk.Label(frame, text="Confirma a exclusão do movimento selecionado?",
-              font=("Arial", 11)).pack(pady=20)
+    # Mensagem de confirmação
+    if not messagebox.askyesno(
+        "Confirmar Exclusão",
+        f"Deseja realmente excluir este movimento?\n\n"
+        f"ID: {id_registro}\n"
+        f"Código: {codigo_ativo}\n"
+        f"Descrição: {descricao}",
+        parent=root
+    ):
+        return
 
-    ttk.Button(frame, text="Excluir", width=15,
-               command=lambda: excluir_registro(janela, tree)).pack(pady=5)
-
-    ttk.Button(frame, text="Cancelar", width=15,
-               command=janela.destroy).pack(pady=5)
-
-
+    # Se confirmou, chama a exclusão
+    excluir_registro(root, tree)
 
 def excluir_registro(janela, tree):
 
@@ -66,15 +72,15 @@ def excluir_registro(janela, tree):
     # 3) Extrair informações do registro
     # -----------------------------------------
     id_registro    = valores[0]          # PK da tabela INV03
-    codigo_ativo   = valores[1]
-    tipo_mov       = valores[2]          # C / D / V
-    quantidade     = conv_float(valores[3])
-    vlr_unitario   = conv_float(valores[4])
-    vlr_total_rs   = conv_float(valores[5])
-    cotacao_us     = conv_float(valores[6]) if len(valores) > 6 else 0
-    vlr_unit_us    = conv_float(valores[7]) if len(valores) > 7 else 0
-    vlr_total_us   = conv_float(valores[8]) if len(valores) > 8 else 0
-    data_inclusao  = valores[9]
+    codigo_ativo   = valores[1]          # Codigo do Ativo
+    tipo_mov       = valores[3]          # C / D / V
+    quantidade     = conv_float(valores[4])
+    vlr_unitario   = conv_float(valores[5])
+    vlr_total_rs   = conv_float(valores[6])
+    cotacao_us     = conv_float(valores[7]) if len(valores) > 6 else 0
+    vlr_unit_us    = conv_float(valores[8]) if len(valores) > 7 else 0
+    vlr_total_us   = conv_float(valores[9]) if len(valores) > 8 else 0
+    data_inclusao  = valores[10]
 
     # -----------------------------------------
     # 4) Verificar se a data do movimento = data atual
@@ -97,7 +103,7 @@ def excluir_registro(janela, tree):
     # Reverter impacto na INV02
     inv00_0.reverter_posicao_inv02(
         conn,
-        codigo_ativo=codigo_ativo,
+        codigo_ativo=codigo_ativo,   # <-- este é o correto
         tipo_mov=tipo_mov,
         quantidade=quantidade,
         total_rs=vlr_total_rs,
@@ -123,4 +129,3 @@ def excluir_registro(janela, tree):
         tree.insert("", tk.END, values=reg)
 
     messagebox.showinfo("Sucesso", "Registro excluído com sucesso!", parent=janela)
-    janela.destroy()

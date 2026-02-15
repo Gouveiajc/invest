@@ -6,11 +6,14 @@ Banco de Dados inv.db
 
 '''
 import sqlite3
+from tkinter import messagebox
 
 def conectar():
     return sqlite3.connect("inv.db")
 
+#--------------------------------------------------------------------------------------
 #Tabela INV00
+#--------------------------------------------------------------------------------------
 def inserir_registro(conn, cod, desc, perc, seg):
     cursor = conn.cursor()
     cursor.execute(
@@ -54,8 +57,9 @@ def alterar_registro(conn, cod, desc, perc, seg):
         conn.commit()
     except sqlite3.Error as e:
         print(f"Erro ao alterar registro: {e}")
-
+#----------------------------------------------------------------------------------
 #Tabela INV01
+#----------------------------------------------------------------------------------
 def listar_registros_inv01(conn):
     cursor = conn.cursor()
     cursor.execute("SELECT inv01_05, inv01_02, inv01_01, inv01_20 FROM inv01")
@@ -98,7 +102,9 @@ def soma_perc_inv01(conn, tipo_id):
     cursor.execute(""" SELECT COALESCE(SUM(INV01_20), 0) FROM INV01 WHERE INV01_01 = ? """, (tipo_id,)) 
     return float(cursor.fetchone()[0]) 
 
+#---------------------------------------------------------------------
 #Tabela INV02
+#---------------------------------------------------------------------
 def listar_registros_inv02(conn):
     cursor = conn.cursor()
     cursor.execute("SELECT inv02_06, inv02_02, inv02_01, inv02_05, inv02_07, inv02_08, inv02_09, inv02_17, inv02_10, inv02_18, inv02_20, inv02_21 FROM inv02")
@@ -225,105 +231,184 @@ def atualizar_posicao_inv02(conn, codigo_ativo, tipo_mov, quantidade, total_rs, 
     conn.commit()
 
 def reverter_posicao_inv02(conn, codigo_ativo, tipo_mov, quantidade, total_rs, total_us):
-    """
-    Reverte o impacto de um movimento excluído na tabela INV02.
-    COMPRA  (C) → subtrai quantidade e custo
-    DESDOBRO (D) → subtrai quantidade e custo
-    VENDA   (V) → soma quantidade e custo proporcional
-    Funciona com R$ e com US$ para ativos internacionais.
-    """
+    cur = conn.cursor()
 
-    cursor = conn.cursor()
+    # Normalizar código
+    codigo_ativo = str(codigo_ativo).strip().upper()
 
-    # Recupera posição atual do ativo
-    cursor.execute("""
-        SELECT INV02_07, INV02_09, INV02_08,
-               INV02_10, INV02_20, INV02_17
+    # Buscar posição atual
+    cur.execute("""
+        SELECT INV02_07, INV02_09, INV02_10, INV02_17
         FROM INV02
         WHERE INV02_06 = ?
     """, (codigo_ativo,))
-    atual = cursor.fetchone()
+    row = cur.fetchone()
 
-    if not atual:
-        return  # ativo não encontrado
+    if row is None:
+        raise ValueError(f"Ativo '{codigo_ativo}' não encontrado na tabela INV02.")
 
-    qtd_atual, total_r_atual, preco_r_atual, total_us_atual, preco_us_atual, usa_dolar_flag = atual
+    qtd_atual, custo_total, custo_total_usd, ativo_exterior = row
 
-    if qtd_atual is None: qtd_atual = 0
-    if total_r_atual is None: total_r_atual = 0
-    if preco_r_atual is None: preco_r_atual = 0
-    if total_us_atual is None: total_us_atual = 0
-    if preco_us_atual is None: preco_us_atual = 0
-
-    usa_dolar = (usa_dolar_flag == "S")
-
-    # =====================================================
-    #  REGRAS DE REVERSÃO
-    # =====================================================
-
-    # ------------------------------------------
-    # COMPRA (C) ou DESDOBRO (D)
-    # DESFAZER = subtrair quantidade e custo
-    # ------------------------------------------
-    if tipo_mov in ["C", "D"]:
-
+    # -------------------------
+    # 1) REVERTER COMPRA
+    if tipo_mov == "C":
         nova_qtd = qtd_atual - quantidade
-        novo_total_r = total_r_atual - total_rs
+        novo_custo_total = custo_total - total_rs
+        novo_custo_medio = novo_custo_total / nova_qtd if nova_qtd > 0 else 0
+        novo_custo_total_usd = custo_total_usd - total_us if ativo_exterior == "S" else None
 
-        if usa_dolar:
-            novo_total_us = total_us_atual - total_us
-        else:
-            novo_total_us = 0
-
-    # ------------------------------------------
-    # VENDA (V)
-    # DESFAZER = somar quantidade e custo proporcional
-    # ------------------------------------------
+    # -------------------------
+    # 2) REVERTER VENDA
     elif tipo_mov == "V":
-
-        # custo proporcional (R$)
-        custo_r_retorno = preco_r_atual * quantidade
-        novo_total_r = total_r_atual + custo_r_retorno
-
-        # custo proporcional (US$)
-        if usa_dolar:
-            custo_us_retorno = preco_us_atual * quantidade
-            novo_total_us = total_us_atual + custo_us_retorno
-        else:
-            novo_total_us = 0
-
         nova_qtd = qtd_atual + quantidade
+        custo_medio = custo_total / qtd_atual if qtd_atual > 0 else 0
+        novo_custo_total = custo_total + (custo_medio * quantidade)
+        novo_custo_medio = novo_custo_total / nova_qtd if nova_qtd > 0 else 0
 
-    # =====================================================
-    # Recalcular preços médios
-    # =====================================================
-    novo_preco_r = novo_total_r / nova_qtd if nova_qtd > 0 else 0
+        if ativo_exterior == "S":
+            custo_medio_usd = custo_total_usd / qtd_atual if qtd_atual > 0 else 0
+            novo_custo_total_usd = custo_total_usd + (custo_medio_usd * quantidade)
+        else:
+            novo_custo_total_usd = None
 
-    if usa_dolar:
-        novo_preco_us = novo_total_us / nova_qtd if nova_qtd > 0 else 0
-    else:
-        novo_preco_us = 0
+    # -------------------------
+    # 3) REVERTER DESDOBRAMENTO
+    elif tipo_mov == "D":
+        fator = quantidade
+        nova_qtd = qtd_atual / fator
+        novo_custo_medio = custo_total / nova_qtd if nova_qtd > 0 else 0
+        novo_custo_total = custo_total
+        novo_custo_total_usd = custo_total_usd if ativo_exterior == "S" else None
 
-    # =====================================================
+    # -------------------------
     # Atualizar INV02
-    # =====================================================
-    cursor.execute("""
-        UPDATE INV02 SET
-            INV02_07 = ?,     -- quantidade
-            INV02_09 = ?,     -- custo total em R$
-            INV02_08 = ?,     -- preço médio em R$
-            INV02_10 = ?,     -- custo total em US$
-            INV02_20 = ?      -- preço médio em US$
+    cur.execute("""
+        UPDATE INV02
+        SET INV02_07 = ?,
+            INV02_09 = ?,
+            INV02_08 = ?,
+            INV02_10 = ?
         WHERE INV02_06 = ?
-    """, (nova_qtd, novo_total_r, novo_preco_r,
-          novo_total_us, novo_preco_us, codigo_ativo))
+    """, (nova_qtd, novo_custo_total, novo_custo_medio, novo_custo_total_usd, codigo_ativo))
 
     conn.commit()
+#-----------------------
+# Conciliação de Ativos
+def conciliar_ativo_inv02(codigo_ativo):
 
+    conn = conectar()
+    cur = conn.cursor()
+
+    # Quantidade calculada
+    cur.execute("""
+        SELECT 
+            SUM(
+                CASE 
+                    WHEN Inv03_12 IN ('C','D') THEN Inv03_07
+                    WHEN Inv03_12 = 'V' THEN -Inv03_07
+                END
+            )
+        FROM INV03
+        WHERE Inv03_06 = ?
+    """, (codigo_ativo,))
+    qtd_calc = cur.fetchone()[0] or 0
+
+    # Custo total calculado em R$
+    cur.execute("""
+        SELECT 
+            SUM(
+                CASE 
+                    WHEN Inv03_12 IN ('C','D') THEN Inv03_14
+                    WHEN Inv03_12 = 'V' THEN -Inv03_07 * (
+                        SELECT Inv02_08 FROM INV02 WHERE Inv02_06 = INV03.Inv03_06
+                    )
+                END
+            )
+        FROM INV03
+        WHERE Inv03_06 = ?
+    """, (codigo_ativo,))
+    custo_calc = cur.fetchone()[0] or 0
+
+    # Buscar dados do ativo
+    cur.execute("""
+        SELECT Inv02_07, Inv02_09, Inv02_08, Inv02_17, Inv02_10
+        FROM INV02
+        WHERE Inv02_06 = ?
+    """, (codigo_ativo,))
+    qtd_atual, custo_atual, custo_medio_atual, ativo_exterior, custo_usd_atual = cur.fetchone()
+
+    # Cálculo do custo médio R$
+    custo_medio_calc = custo_calc / qtd_calc if qtd_calc > 0 else 0
+
+    # Se ativo exterior, calcular custo total em US$
+    if ativo_exterior == 'S':
+        cur.execute("""
+            SELECT 
+                SUM(
+                    CASE 
+                        WHEN Inv03_12 IN ('C','D') THEN Inv03_16
+                        WHEN Inv03_12 = 'V' THEN -Inv03_07 * (
+                            SELECT Inv02_10 / Inv02_07
+                            FROM INV02
+                            WHERE Inv02_06 = INV03.Inv03_06
+                        )
+                    END
+                )
+            FROM INV03
+            WHERE Inv03_06 = ?
+        """, (codigo_ativo,))
+        custo_usd_calc = cur.fetchone()[0] or 0
+    else:
+        custo_usd_calc = custo_usd_atual  # não altera
+
+    # Verificar divergências
+    divergencia = (
+        qtd_calc != qtd_atual or
+        custo_calc != custo_atual or
+        round(custo_medio_calc, 6) != round(custo_medio_atual, 6) or
+        (ativo_exterior == 'S' and custo_usd_calc != custo_usd_atual)
+    )
+
+    if divergencia:
+        msg = (
+            f"Divergência encontrada no ativo {codigo_ativo}\n\n"
+            f"Quantidade atual: {qtd_atual} / Calculada: {qtd_calc}\n"
+            f"Custo atual R$: {custo_atual:.2f} / Calculado: {custo_calc:.2f}\n"
+            f"Custo médio atual R$: {custo_medio_atual:.6f} / Calculado: {custo_medio_calc:.6f}\n"
+        )
+
+        if ativo_exterior == 'S':
+            msg += (
+                f"Custo atual US$: {custo_usd_atual:.2f} / Calculado: {custo_usd_calc:.2f}\n"
+            )
+
+        msg += "\nDeseja atualizar?"
+
+        if messagebox.askyesno("Conciliação", msg):
+            if ativo_exterior == 'S':
+                cur.execute("""
+                    UPDATE INV02
+                    SET Inv02_07 = ?, Inv02_09 = ?, Inv02_08 = ?, Inv02_10 = ?
+                    WHERE Inv02_06 = ?
+                """, (qtd_calc, custo_calc, custo_medio_calc, custo_usd_calc, codigo_ativo))
+            else:
+                cur.execute("""
+                    UPDATE INV02
+                    SET Inv02_07 = ?, Inv02_09 = ?, Inv02_08 = ?
+                    WHERE Inv02_06 = ?
+                """, (qtd_calc, custo_calc, custo_medio_calc, codigo_ativo))
+
+            conn.commit()
+         
+    conn.close()
+
+
+#--------------------------------------------------------
 #Tabela INV03
+#--------------------------------------------------------
 def listar_registros_inv03(conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT inv03_06, inv03_02, inv03_12, inv03_07, inv03_13, inv03_14, inv03_15, inv03_22, inv03_16, inv03_18, inv03_19 FROM inv03")
+    cursor.execute("SELECT inv03_00, inv03_06, inv03_02, inv03_12, inv03_07, inv03_13, inv03_14, inv03_15, inv03_22, inv03_16, inv03_18, inv03_19 FROM inv03")
     return cursor.fetchall()
 
 def inserir_registro_inv03(conn, registro):
