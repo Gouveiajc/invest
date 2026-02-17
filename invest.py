@@ -10,7 +10,8 @@ import inv01_01
 import inv02_01
 import inv03_01
 import inv21_01
-import inv21_05
+import inv22_01
+import inv23_01
 
 
 class App:
@@ -60,7 +61,11 @@ class App:
         
         menu_manutencao.add_command(
             label="Consolidar", 
-            command=lambda: inv21_05.conciliar_ativos()
+            command=lambda: inv22_01.conciliar_ativos()
+            )
+        menu_manutencao.add_command(
+            label="Analise", 
+            command=lambda: inv23_01.analisar_ativos()
             )
         menu_bar.add_cascade(label="Manutenção", menu=menu_manutencao)
 

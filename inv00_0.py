@@ -457,3 +457,44 @@ def excluir_registro_inv03(conn, id_registro):
     cursor.execute("DELETE FROM INV03 WHERE INV03_00 = ?", (id_registro,))
     conn.commit()
 
+#---------------------------------------------
+# Pesquisa Valores dos Ativos no yFinance
+#---------------------------------------------
+def buscar_ativos_para_pesquisa():
+    sql = """
+        SELECT 
+            A.Inv02_06 AS CodigoAtivo,
+            A.Inv02_02 AS DescricaoAtivo,
+            A.Inv02_05 AS CodigoSegmento,
+            S.Inv01_02 AS DescricaoSegmento,
+            A.Inv02_07 AS Quantidade,
+            A.Inv02_20 AS PercentualLimite,
+            A.Inv02_17 AS AtivoExterior
+        FROM Inv02 A
+        LEFT JOIN Inv01 S ON S.Inv01_05 = A.Inv02_05
+        WHERE A.Inv02_22 = 'S'
+    """
+
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute(sql)
+        rows = cur.fetchall()
+        conn.close()
+
+        colunas = [
+            "CodigoAtivo",
+            "DescricaoAtivo",
+            "CodigoSegmento",
+            "DescricaoSegmento",
+            "Quantidade",
+            "PercentualLimite",
+            "AtivoExterior"
+        ]
+
+
+        return [dict(zip(colunas, r)) for r in rows]
+
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao buscar ativos: {e}")
+        return []
