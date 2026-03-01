@@ -12,6 +12,7 @@ import inv03_01
 import inv21_01
 import inv22_01
 import inv23_01
+import inv24_01
 
 
 class App:
@@ -65,7 +66,12 @@ class App:
             )
         menu_manutencao.add_command(
             label="Analise", 
-            command=lambda: inv23_01.analisar_ativos()
+         #   command=lambda: inv23_01.analisar_ativos()
+            command=lambda: inv23_01.executar_analise(root)
+            )
+        menu_manutencao.add_command(
+            label="Dividendos", 
+            command=lambda: inv24_01.abrir_tela_dividendos(root)
             )
         menu_bar.add_cascade(label="Manutenção", menu=menu_manutencao)
 

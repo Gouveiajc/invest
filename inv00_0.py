@@ -460,41 +460,173 @@ def excluir_registro_inv03(conn, id_registro):
 #---------------------------------------------
 # Pesquisa Valores dos Ativos no yFinance
 #---------------------------------------------
-def buscar_ativos_para_pesquisa():
-    sql = """
-        SELECT 
-            A.Inv02_06 AS CodigoAtivo,
-            A.Inv02_02 AS DescricaoAtivo,
-            A.Inv02_05 AS CodigoSegmento,
-            S.Inv01_02 AS DescricaoSegmento,
-            A.Inv02_07 AS Quantidade,
-            A.Inv02_20 AS PercentualLimite,
-            A.Inv02_17 AS AtivoExterior
-        FROM Inv02 A
-        LEFT JOIN Inv01 S ON S.Inv01_05 = A.Inv02_05
-        WHERE A.Inv02_22 = 'S'
-    """
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
 
-    try:
-        conn = conectar()
+
+def get_connection():
+    conn = conectar()
+    conn.row_factory = dict_factory
+    return conn
+
+
+def buscar_ativos_para_pesquisa():
+    """
+    Retorna todos os ativos com os dados necessários para a análise:
+    - tipo (INV00)
+    - segmento (INV01)
+    - ativo (INV02)
+    """
+    sql = """
+    SELECT a.inv02_00 AS IdAtivo,
+        a.inv02_06 AS CodigoAtivo,
+        a.inv02_07 AS Quantidade,
+        a.inv02_09 AS CustoBRL,
+        a.inv02_10 AS CustoUSD,
+        a.inv02_17 AS AtivoExterior,
+        a.inv02_20 AS PercentualLimiteAtivo,
+        a.inv02_22 AS UsaCotacao,
+        s.inv01_00 AS IdSegmento,
+        s.inv01_05 AS CodigoSegmento,
+        s.inv01_02 AS DescricaoSegmento,
+        s.inv01_20 AS PercentualLimiteSegmento,
+        t.inv00_01 AS CodigoTipo,
+        t.inv00_02 AS DescricaoTipo,
+        t.inv00_20 AS PercentualLimiteTipo
+    FROM INV02 a
+    LEFT JOIN INV01 s ON s.inv01_05 = a.inv02_05
+    LEFT JOIN INV00 t ON t.inv00_01 = a.inv02_01
+    WHERE a.inv02_07 > 0
+    """
+    with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(sql)
         rows = cur.fetchall()
-        conn.close()
+    return rows
 
-        colunas = [
-            "CodigoAtivo",
-            "DescricaoAtivo",
-            "CodigoSegmento",
-            "DescricaoSegmento",
-            "Quantidade",
-            "PercentualLimite",
-            "AtivoExterior"
-        ]
+import sqlite3
+
+#--------------------------------------------------------
+#Tabela INV04
+#--------------------------------------------------------
+
+# ------------------------------------------------------------
+# Buscar ativos que pagam dividendos (Inv02_22 = 'S')
+# ------------------------------------------------------------
+def buscar_ativos_pagadores():
+    con = conectar()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    sql = """
+        SELECT 
+            Inv02_05 AS CodigoSegmento,
+            Inv02_06 AS CodigoAtivo,
+            Inv02_07 AS Quantidade,
+            Inv02_18 AS AtivoExterior
+        FROM INV02
+        WHERE Inv02_22 = 'S'
+    """
+
+    cur.execute(sql)
+    dados = cur.fetchall()
+    con.close()
+    return dados
+
+# ------------------------------------------------------------
+# Verificar se dividendo já existe (chave: ativo + data pagamento)
+# ------------------------------------------------------------
+def buscar_dividendo_existente(codigo_ativo, data_pagamento):
+    con = conectar()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    sql = """
+        SELECT 
+            Inv04_00,
+            Inv04_06,
+            Inv04_18
+        FROM INV04
+        WHERE Inv04_06 = ?
+          AND Inv04_18 = ?
+    """
+
+    cur.execute(sql, (codigo_ativo, data_pagamento))
+    dado = cur.fetchone()
+    con.close()
+    return dado
 
 
-        return [dict(zip(colunas, r)) for r in rows]
+# ------------------------------------------------------------
+# Inserir dividendo na INV04
+# ------------------------------------------------------------
+def inserir_dividendo(reg):
+    con = conectar()
+    cur = con.cursor()
 
-    except Exception as e:
-        messagebox.showerror("Erro", f"Erro ao buscar ativos: {e}")
-        return []
+    sql = """
+        INSERT INTO INV04 (
+            Inv04_05,  -- Código Segmento
+            Inv04_06,  -- Código Ativo
+            Inv04_23,  -- Valor Dividendo R$
+            Inv04_07,  -- Quantidade
+            Inv04_24,  -- Total Dividendo R$
+            Inv04_15,  -- Cotação US$
+            Inv04_25,  -- Valor Dividendo US$
+            Inv04_26,  -- Total Dividendo US$
+            Inv04_18   -- Data Pagamento
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    cur.execute(sql, (
+        reg["CodigoSegmento"],
+        reg["CodigoAtivo"],
+        reg["ValorRS"],
+        reg["Quantidade"],
+        reg["TotalRS"],
+        reg["CotacaoUS"],
+        reg["ValorUS"],
+        reg["TotalUS"],
+        reg["DataPagamento"]
+    ))
+
+    con.commit()
+    con.close()
+
+
+# ------------------------------------------------------------
+# Atualizar dividendo existente
+# ------------------------------------------------------------
+def atualizar_dividendo(reg, id_registro):
+    con = conectar()
+    cur = con.cursor()
+
+    sql = """
+        UPDATE INV04 SET
+            Inv04_23 = ?,   -- Valor R$
+            Inv04_07 = ?,   -- Quantidade
+            Inv04_24 = ?,   -- Total R$
+            Inv04_15 = ?,   -- Cotação US$
+            Inv04_25 = ?,   -- Valor US$
+            Inv04_26 = ?    -- Total US$
+        WHERE Inv04_00 = ?
+    """
+
+    cur.execute(sql, (
+        reg["ValorRS"],
+        reg["Quantidade"],
+        reg["TotalRS"],
+        reg["CotacaoUS"],
+        reg["ValorUS"],
+        reg["TotalUS"],
+        id_registro
+    ))
+
+    con.commit()
+    con.close()
+
+
