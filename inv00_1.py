@@ -4,7 +4,7 @@ JC 01/2026
 Ver 1
 
 '''
-def validar_campos(cod, desc, perc, seg):
+def validar_campos(cod, desc, seg, perc):
 
     # Campos obrigatórios
     if not cod:
@@ -105,3 +105,24 @@ def validar_campos_inv03(reg):
 
     # Se chegou até aqui, está tudo ok
     return None
+
+# ============================================================
+#   FUNÇÕES DE CONVERSÃO DE DATAS
+# ============================================================
+def br_para_iso_compacto(data_br):
+    """
+    Converte DD/MM/AAAA → AAAAMMDD
+    """
+    if not data_br:
+        return None
+    d, m, a = data_br.split("/")
+    return f"{a}{m}{d}"
+
+def iso_compacto_para_br(data_iso):
+    """
+    Converte AAAAMMDD → DD/MM/AAAA
+    """
+    if not data_iso:
+        return ""
+    return f"{data_iso[6:8]}/{data_iso[4:6]}/{data_iso[0:4]}"
+

@@ -4,15 +4,15 @@ Módulo: inv24_01.py
 Mar/2026
 """
 import tkinter as tk
-from tkinter import messagebox
 import calendar
-from datetime import datetime
 import yfinance as yf
 import inv00_0
-
 import inv23_01
-from inv23_01 import ajustar_ticker, obter_cotacao_moeda
+import threading
 
+from tkinter import ttk
+from tkinter import messagebox
+from datetime import datetime
 
 # ------------------------------------------------------------
 # Centralizar janela
@@ -34,7 +34,7 @@ def abrir_tela_dividendos(root):
     janela.title("Buscar Dividendos")
     janela.resizable(False, False)
 
-    centralizar_janela(janela, 300, 180)
+    centralizar_janela(janela, 300, 230)
 
     tk.Label(janela, text="Mês (1-12):").pack(pady=5)
     entry_mes = tk.Entry(janela)
@@ -44,10 +44,31 @@ def abrir_tela_dividendos(root):
     entry_ano = tk.Entry(janela)
     entry_ano.pack()
 
+    progresso = ttk.Progressbar(janela, mode="indeterminate")
+
+    def processar():
+        progresso.pack(pady=10)
+        progresso.start(10)
+
+        def tarefa():
+            executar_dividendos(
+                janela,
+                entry_mes.get(),
+                entry_ano.get()
+            )
+            janela.after(0, finalizar)
+
+        def finalizar():
+            if progresso.winfo_exists():
+                progresso.stop()
+                progresso.destroy()
+
+        threading.Thread(target=tarefa, daemon=True).start()
+
     tk.Button(
         janela,
         text="Processar",
-        command=lambda: executar_dividendos(janela, entry_mes.get(), entry_ano.get())
+        command=processar
     ).pack(pady=15)
 
 
@@ -61,7 +82,6 @@ def calcular_intervalo(mes, ano):
     data_inicial = datetime(ano, mes, 1)
     data_final = datetime(ano, mes, ultimo_dia)
     return data_inicial, data_final
-
 
 # ------------------------------------------------------------
 # Função principal
@@ -87,22 +107,51 @@ def executar_dividendos(janela, mes, ano):
         quantidade = ativo["Quantidade"]
         ativo_exterior = ativo["AtivoExterior"]
 
-        # Ajustar ticker
-        ticker = ajustar_ticker(codigo_ativo, ativo_exterior)
+         # Ajustar ticker
+        ticker = inv23_01.ajustar_ticker(codigo_ativo, ativo_exterior)
 
         try:
             yf_t = yf.Ticker(ticker)
-            dividendos = yf_t.dividends.loc[data_inicial:data_final]
-        except:
+
+            # Primeiro tenta via actions (FIIs, REITs, ETFs)
+            try:
+                dividendos = yf_t.actions["Dividends"]
+            except:
+                # Se não existir actions, usa dividends (ações)
+                dividendos = yf_t.dividends
+
+            # 🔧 Remover timezone do índice (CORREÇÃO DO ERRO)
+            if hasattr(dividendos.index, "tz"):
+                try:
+                    dividendos.index = dividendos.index.tz_localize(None)
+                except:
+                    pass
+
+            # Agora sim podemos filtrar
+            dividendos = dividendos.loc[data_inicial:data_final]
+
+        except Exception as e:
+            print(f"Erro ao buscar dividendos para {ticker}: {e}")
             continue
 
+
         for data_pagamento, valor in dividendos.items():
+
+            # Normalizar data (remove timezone, hora, etc.)
+            try:
+                data_pagamento = data_pagamento.to_pydatetime().date()
+            except:
+                # Caso já seja date
+                data_pagamento = data_pagamento.date()
+
+            # Formatar DD/MM/AAAA
+            data_pagamento_str = data_pagamento.strftime("%d/%m/%Y")
 
             # ------------------------------------------------------------
             # Ativo exterior
             # ------------------------------------------------------------
             if ativo_exterior == "S":
-                cotacao_usd = obter_cotacao_moeda("USD")
+                cotacao_usd = inv23_01.obter_cotacao_moeda("USD")
                 valor_usd = float(valor)
                 total_usd = valor_usd * quantidade
 
@@ -132,13 +181,16 @@ def executar_dividendos(janela, mes, ano):
                 "CotacaoUS": cotacao_usd,
                 "ValorUS": valor_usd,
                 "TotalUS": total_usd,
-                "DataPagamento": data_pagamento.strftime("%Y-%m-%d")
+                "DataPagamento": data_pagamento_str
             }
-
+ 
             # ------------------------------------------------------------
-            # Verificar existência (ticker + data pagamento)
+            # Verificar existência (ativo + data pagamento)
             # ------------------------------------------------------------
-            existe = inv00_0.buscar_dividendo_existente(codigo_ativo, registro["DataPagamento"])
+            existe = inv00_0.buscar_dividendo_existente(
+                codigo_ativo,
+                data_pagamento_str
+            )
 
             if existe:
                 inv00_0.atualizar_dividendo(registro, existe["Inv04_00"])
@@ -146,6 +198,7 @@ def executar_dividendos(janela, mes, ano):
                 inv00_0.inserir_dividendo(registro)
 
             total_registros += 1
+
 
     janela.destroy()
     messagebox.showinfo("Concluído", f"Processo finalizado.\nRegistros processados: {total_registros}")

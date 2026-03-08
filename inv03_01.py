@@ -66,9 +66,10 @@ def abrir_lista(root):
         "INV02_09",  # 6 Custo Aquisição
         "INV02_17",  # 7 Ativo Exterior
         "INV02_10",  # 8 Custo Aquisição US$
-        "INV02_18",  # 9 Data Inclusão
-        "INV02_20",  # 10 Percentual
-        "INV02_21"   # 11 Observação
+        "INV02_22",  # 9 Atualiza Valor
+        "INV02_18",  # 10 Data Inclusão
+        "INV02_20",  # 11 Percentual
+        "INV02_21"   # 12 Observação
     )
 
     tree = ttk.Treeview(frame_grid, columns=colunas, show="headings", height=15)
@@ -82,6 +83,7 @@ def abrir_lista(root):
     tree.heading("INV02_09", text="Custo Aquisição")
     tree.heading("INV02_17", text="Ativo Exterior")
     tree.heading("INV02_10", text="Custo Aquisição US$")
+    tree.heading("INV02_22", text="Atualiza Valores")
     tree.heading("INV02_18", text="Data da Inclusão")
     tree.heading("INV02_20", text="% Investir")
     tree.heading("INV02_21", text="Obs.")
@@ -95,6 +97,7 @@ def abrir_lista(root):
     tree.column("INV02_09", width=150)
     tree.column("INV02_17", width=100)
     tree.column("INV02_10", width=150)
+    tree.column("INV02_22", width=150)
     tree.column("INV02_18", width=120)
     tree.column("INV02_20", width=100)
     tree.column("INV02_21", width=250)

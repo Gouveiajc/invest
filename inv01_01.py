@@ -62,8 +62,8 @@ def abrir_lista(root):
 
     tree.heading("INV00_01", text="Código")
     tree.heading("INV00_02", text="Descrição")
-    tree.heading("INV00_03", text="Percentual")
-    tree.heading("INV00_20", text="Requer Segmento")
+    tree.heading("INV00_03", text="Requer Segmento")
+    tree.heading("INV00_20", text="Limite Perc.Invest.")
 
     tree.column("INV00_01", width=80)
     tree.column("INV00_02", width=250)
@@ -128,5 +128,4 @@ def deletar_registro(tree):
     # Devolve o foco para a janela do grid
     janela.lift()
     janela.focus_force()
-
 
