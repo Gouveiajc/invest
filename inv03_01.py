@@ -1,6 +1,10 @@
 """
-Tela de Consulta dos Ativos
-Tabela INV01
+Programa de Cadastro de Ativos
+Tela Inicial
+JC Jan/2026
+Ver 1
+Banco de Dados inv.db
+Tabela inv02
 Módulo: inv03_01.py
 """
 

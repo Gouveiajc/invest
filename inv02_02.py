@@ -1,9 +1,11 @@
 '''
-Programa de Cadastro de Segmentos
-JC 01/2026
+Programa de Cadastro de Cadastro de Segmentos
+Inclusão
+JC Jan/2026
 Ver 1
 Banco de Dados inv.db
 Tabela inv01
+Módulo: inv02_02.py
 '''
 import tkinter as tk
 from tkinter import ttk
@@ -85,6 +87,8 @@ def abrir_janela_inv01(root, tree):
             return
 
         tipo_id = tipo_selecionado.split(" - ")[0]
+        tipo_desc = tipo_selecionado.split(" - ")[1]
+
 
         ok, mensagem, campo = inv00_1.validar_campos_inv01(cod, desc, tipo_id, per)
         if not ok:
@@ -102,11 +106,12 @@ def abrir_janela_inv01(root, tree):
                 return
 
             # 2. Verifica soma de percentuais (Correção da lógica do 'continuar')
-            soma_atual = inv00_0.soma_perc_tipo(conn, tipo_id)
+            soma_atual = inv00_0.soma_perc_inv01(conn, tipo_id)
             novo_total = soma_atual + per_float
 
             if novo_total > 100:
-                msg = f"A soma para o tipo {tipo_id} chegará a {novo_total:.2f}%.\nContinua?"
+ #               msg = f"A soma para o tipo {tipo_id} chegará a {novo_total:.2f}%.\nContinua?"
+                msg = f"Percentual para o tipo {tipo_id}-{tipo_desc} será {novo_total:.2f}%.\nContinua?"
                 if not messagebox.askyesno("Confirmação", msg, parent=janela):
                     return
             

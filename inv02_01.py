@@ -1,6 +1,10 @@
 """
-Tela de Consulta dos Classe de Ativos
-Tabela INV01
+Programa de Cadastro de Segmentos
+Tela Inicial
+JC Jan/2026
+Ver 1
+Banco de Dados inv.db
+Tabela inv01
 Módulo: inv02_01.py
 """
 
@@ -8,21 +12,20 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 import inv00_0      # módulo de banco de dados
-import inv01_02     # módulo de inclusão
-import inv01_03     # módulo de alteração
-
+import inv02_02     # módulo de inclusão
+import inv02_03     # módulo de alteração
 
 def abrir_lista(root):
 
     # Evita abrir várias janelas iguais
     for widget in root.winfo_children():
-        if isinstance(widget, tk.Toplevel) and widget.title() == "Consulta de Tipos de Ativos":
+        if isinstance(widget, tk.Toplevel) and widget.title() == "Consulta de Segmentos":
             widget.lift()
             return
 
     # Criar janela
     janela = tk.Toplevel(root)
-    janela.title("Consulta de Tipos de Ativos")
+    janela.title("Consulta de Segmentos")
     janela.geometry("750x450")
     janela.grab_set()
 
@@ -35,12 +38,11 @@ def abrir_lista(root):
     frame_botoes = ttk.Frame(janela, padding=10)
     frame_botoes.pack(fill="x")
 
-    # Os callbacks serão adicionados depois da criação do grid
-    btn_incluir = ttk.Button(frame_botoes, text="INCLUIR", width=12)
-    btn_incluir.pack(side="left", padx=5)
+    ttk.Button(frame_botoes, text="INCLUIR", width=12,
+               command=lambda: inv02_02.abrir_janela_inv01(janela, tree) ).pack(side="left", padx=5)
 
-    btn_alterar = ttk.Button(frame_botoes, text="ALTERAR", width=12)
-    btn_alterar.pack(side="left", padx=5)
+    ttk.Button(frame_botoes, text="ALTERAR", width=12,
+               command=lambda: inv02_03.alterar_registro(tree)).pack(side="left", padx=5)
 
     ttk.Button(frame_botoes, text="DELETAR", width=12,
                command=lambda: deletar_registro(tree)).pack(side="left", padx=5)
@@ -54,67 +56,42 @@ def abrir_lista(root):
     frame_grid = ttk.Frame(janela, padding=10)
     frame_grid.pack(fill="both", expand=True)
 
+
     # Label para mensagens
     label_aviso = ttk.Label(frame_grid, text="", foreground="red", font=("Arial", 10, "bold"))
     label_aviso.pack(anchor="w", pady=(0, 5))
 
-    colunas = ("INV00_01", "INV00_02", "INV00_03", "INV00_20")
+    colunas = ("INV01_05", "INV01_02", "INV01_01", "INV01_20")
 
     tree = ttk.Treeview(frame_grid, columns=colunas, show="headings", height=15)
 
-    tree.heading("INV00_01", text="Código")
-    tree.heading("INV00_02", text="Descrição")
-    tree.heading("INV00_03", text="Requer Segmento")
-    tree.heading("INV00_20", text="Limite Perc.Invest.")
-
-    tree.column("INV00_01", width=80)
-    tree.column("INV00_02", width=250)
-    tree.column("INV00_03", width=120)
-    tree.column("INV00_20", width=150)
-
+    tree.heading("INV01_05", text="Código")
+    tree.heading("INV01_02", text="Descrição")
+    tree.heading("INV01_01", text="Tipo Ativo")
+    tree.heading("INV01_20", text="Percentual Tipo Ativo")
+  
+    tree.column("INV01_05", width=80)
+    tree.column("INV01_02", width=250)
+    tree.column("INV01_01", width=80)
+    tree.column("INV01_20", width=100)
+    
     tree.pack(fill="both", expand=True)
 
     # -----------------------------
-    #   FUNÇÃO PARA CARREGAR DADOS
+    #       CARREGAR DADOS
     # -----------------------------
-    def carregar_dados():
-        # Limpa o grid
-        for i in tree.get_children():
-            tree.delete(i)
+    conn = inv00_0.conectar()
+    registros = inv00_0.listar_registros_inv01(conn)
 
-        conn = inv00_0.conectar()
-        registros = inv00_0.listar_registros(conn)
-
-        for reg in registros:
-            tree.insert("", tk.END, values=reg)
-
-        # Atualiza aviso
-        total_perc = inv00_0.soma_perc(conn)
-        if total_perc != 100:
-            label_aviso.config(text=f"Soma dos Percentuais é {total_perc:.2f}%, o limite é 100%!")
-        else:
-            label_aviso.config(text="")
-
-        conn.close()
-
-    # Carrega os dados ao abrir a tela
-    carregar_dados()
-
-    # -----------------------------
-    #   AGORA SIM: CALLBACKS
-    # -----------------------------
-    btn_incluir.config(
-        command=lambda: inv01_02.abrir_janela(janela, carregar_dados)
-    )
-
-    btn_alterar.config(
-        command=lambda: inv01_03.alterar_registro(tree, carregar_dados)
-    )
-
+    for reg in registros:
+        tree.insert("", tk.END, values=reg)
+    
+    conn.close()
 
 # -----------------------------
-#       FUNÇÃO DELETAR
+#       FUNÇÕES AUXILIARES
 # -----------------------------
+
 def deletar_registro(tree):
     item = tree.selection()
     janela = tree.master  # janela do grid
@@ -129,22 +106,22 @@ def deletar_registro(tree):
 
     if messagebox.askyesno("Confirmar", f"Excluir o registro: \nCódigo: {codigo} \nDescrição: {desc}?", parent=janela):
         conn = inv00_0.conectar()
-        inv00_0.excluir_registro(conn, codigo)
+        inv00_0.excluir_registro_inv01(conn, codigo)
         conn.close()
 
-        # Recarrega o grid
+        # Limpa o grid
         for i in tree.get_children():
             tree.delete(i)
 
+        # Recarrega os dados do banco
         conn = inv00_0.conectar()
-        registros = inv00_0.listar_registros(conn)
+        registros = inv00_0.listar_registros_inv01(conn)
+        conn.close()
         for reg in registros:
             tree.insert("", tk.END, values=reg)
-        conn.close()
 
         messagebox.showinfo("Sucesso", "Registro excluído com sucesso!", parent=janela)
 
+    # Devolve o foco para a janela do grid
     janela.lift()
     janela.focus_force()
-
-

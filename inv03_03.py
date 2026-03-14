@@ -1,9 +1,11 @@
 '''
-Programa de Cadastro de Ativo - Alteração
-JC 02/2026
+Programa de Cadastro de Ativos
+Alteração
+JC Jan/2026
 Ver 1
 Banco de Dados inv.db
 Tabela inv02
+Módulo: inv03_03.py
 '''
 import tkinter as tk
 from tkinter import ttk, messagebox

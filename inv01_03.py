@@ -1,10 +1,11 @@
 '''
-Programa de Cadastro de Tipos de Ativo - Alteração
-JC 01/2026
+Programa de Cadastro de Tipos de Ativo
+Alteração
+JC Jan/2026
 Ver 1
 Banco de Dados inv.db
 Tabela inv00
-
+Módulo inv01_03.py
 '''
 
 import tkinter as tk
@@ -71,10 +72,32 @@ def alterar_registro(tree, atualizar_grid_callback=None):
             return
 
         conn = inv00_0.conectar()
+
+        # Soma atual dos percentuais
+        soma_atual = inv00_0.soma_perc(conn)
+
+        # Percentual antigo do registro selecionado
+        perc_antigo = float(perc)
+
+        # Soma ajustada (remove o antigo, adiciona o novo)
+        soma_nova = soma_atual - perc_antigo + perc_float
+
+        # Se ultrapassar 100%, perguntar ao usuário
+        if soma_nova > 100:
+            msg = (
+                 f"O total dos percentuais {soma_nova:.2f}%.\n"
+                "Excedeu o limite de 100%.\n\n"
+                "Deseja continuar mesmo assim?"
+            )
+            continuar = messagebox.askyesno("Atenção", msg, parent=janela)
+            if not continuar:
+                conn.close()
+                return
+
+        # Gravação
         inv00_0.alterar_registro(conn, codigo, desc, perc_float, novo_seg)
         conn.close()
 
-        # 🔥 Atualiza o grid da tela principal
         if atualizar_grid_callback:
             atualizar_grid_callback()
 

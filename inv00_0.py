@@ -1,10 +1,10 @@
 '''
 Programa de Investimentos
 Conexão com o Banco INV.DB e Queries
-JC 01/2026
+JC Jan/2026
 Ver 1
 Banco de Dados inv.db
-
+Módulo inv00_0.py
 '''
 #parte a
 import sqlite3
@@ -38,7 +38,7 @@ def excluir_registro(conn, cod):
 
 def listar_registros(conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT inv00_01, inv00_02, inv00_03, inv00_20 FROM inv00")
+    cursor.execute("SELECT inv00_01, inv00_02, inv00_03, inv00_20 FROM inv00 ORDER BY inv00_01")
     return cursor.fetchall()
 
 
@@ -173,7 +173,7 @@ def inserir_registro_inv02(conn, cod, desc, tipo, segm, atv, vlr, data, peri, ob
 
     conn.commit()
 
-def soma_percentuais_inv02_segmento(conn, segmento_id):
+def soma_perc_inv02(conn, segmento_id):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT COALESCE(SUM(Inv02_20), 0)

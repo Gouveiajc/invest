@@ -1,10 +1,11 @@
 '''
 Programa de Cadastro de Tipos de Ativo
-JC 01/2026
+Inclusão
+JC Jan/2026
 Ver 1
 Banco de Dados inv.db
 Tabela inv00
-
+Módulo inv01_02.py
 '''
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -64,10 +65,27 @@ def abrir_janela(root, atualizar_grid_callback=None):
             return
 
         conn = inv00_0.conectar()
-        inv00_0.inserir_registro(conn, cod, desc, perc_float, seg)
+
+        # 🔍 Soma atual dos percentuais
+        soma_atual = inv00_0.soma_perc(conn)
+        soma_nova = soma_atual + perc_float
+
+        # ⚠️ Se ultrapassar 100%, perguntar ao usuário
+        if soma_nova > 100:
+            msg = (
+                f"O total dos percentuais {soma_nova:.2f}%.\n"
+                "Excedeu o limite de 100%.\n\n"
+                "Deseja continuar mesmo assim?"
+            )
+            continuar = messagebox.askyesno("Atenção", msg, parent=janela)
+            if not continuar:
+                conn.close()
+                return
+
+        # Gravação
+        inv00_0.inserir_registro(conn, cod, desc, seg, perc_float)
         conn.close()
 
-        # 🔥 Atualiza o grid da tela principal
         if atualizar_grid_callback:
             atualizar_grid_callback()
 

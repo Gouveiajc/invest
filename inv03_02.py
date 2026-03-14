@@ -1,9 +1,11 @@
 '''
 Programa de Cadastro de Ativos
-JC 02/2026
+Inclusão
+JC Jan/2026
 Ver 1
 Banco de Dados inv.db
 Tabela inv02
+Módulo: inv03_02.py
 '''
 import tkinter as tk
 from tkinter import ttk
@@ -178,7 +180,7 @@ def abrir_janela_inv02(root, tree):
                 conn.close()
                 return
 
-            soma_atual = inv00_0.soma_perc_inv02(conn, tipo)
+            soma_atual = inv00_0.soma_perc_inv02(conn, segm)
             nova_soma = soma_atual + peri
 
             if nova_soma > 100:

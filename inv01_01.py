@@ -1,5 +1,10 @@
 """
-Tela de Consulta dos Tipos de Ativos (INV00)
+Programa de Cadastro de Tipos de Ativo
+Tela Inicial 
+JC Jan/2026
+Ver 1
+Banco de Dados inv.db
+Tabela inv00
 Módulo: inv01_01.py
 """
 
@@ -9,6 +14,7 @@ from tkinter import messagebox
 import inv00_0      # módulo de banco de dados
 import inv01_02     # módulo de inclusão
 import inv01_03     # módulo de alteração
+
 
 def abrir_lista(root):
 
@@ -33,11 +39,13 @@ def abrir_lista(root):
     frame_botoes = ttk.Frame(janela, padding=10)
     frame_botoes.pack(fill="x")
 
-    ttk.Button(frame_botoes, text="INCLUIR", width=12,
-               command=lambda: inv01_02.abrir_janela(janela)).pack(side="left", padx=5)
+    # Os callbacks serão adicionados depois da criação do grid
+    # (por isso usamos lambda vazio aqui temporariamente)
+    btn_incluir = ttk.Button(frame_botoes, text="INCLUIR", width=12)
+    btn_incluir.pack(side="left", padx=5)
 
-    ttk.Button(frame_botoes, text="ALTERAR", width=12,
-               command=lambda: inv01_03.alterar_registro(tree)).pack(side="left", padx=5)
+    btn_alterar = ttk.Button(frame_botoes, text="ALTERAR", width=12)
+    btn_alterar.pack(side="left", padx=5)
 
     ttk.Button(frame_botoes, text="DELETAR", width=12,
                command=lambda: deletar_registro(tree)).pack(side="left", padx=5)
@@ -50,7 +58,6 @@ def abrir_lista(root):
     # -----------------------------
     frame_grid = ttk.Frame(janela, padding=10)
     frame_grid.pack(fill="both", expand=True)
-
 
     # Label para mensagens
     label_aviso = ttk.Label(frame_grid, text="", foreground="red", font=("Arial", 10, "bold"))
@@ -73,27 +80,48 @@ def abrir_lista(root):
     tree.pack(fill="both", expand=True)
 
     # -----------------------------
-    #       CARREGAR DADOS
+    #   FUNÇÃO PARA ATUALIZAR GRID
     # -----------------------------
-    conn = inv00_0.conectar()
-    registros = inv00_0.listar_registros(conn)
+    def atualizar_grid():
+        # Limpa o grid
+        for i in tree.get_children():
+            tree.delete(i)
 
-    for reg in registros:
-        tree.insert("", tk.END, values=reg)
+        # Recarrega os dados
+        conn = inv00_0.conectar()
+        registros = inv00_0.listar_registros(conn)
+        for reg in registros:
+            tree.insert("", tk.END, values=reg)
 
-    # Verificação Somando Percentuais no Banco de Dados
-    total_perc = inv00_0.soma_perc(conn)
-    if total_perc != 100:
-        label_aviso.config(text=f"Soma dos Percentuais é {total_perc:.2f}%, o Limite é 100%!")
-    else:
-        label_aviso.config(text="")  # Limpa se estiver correto
+        # Atualiza aviso da soma dos percentuais
+        total_perc = inv00_0.soma_perc(conn)
+        if total_perc != 100:
+            label_aviso.config(text=f"Soma dos Percentuais é {total_perc:.2f}%, o Limite é 100%!")
+        else:
+            label_aviso.config(text="")
 
-    conn.close()
+        conn.close()
+
+    # -----------------------------
+    #   CARREGAR DADOS INICIAIS
+    # -----------------------------
+    atualizar_grid()
+
+    # -----------------------------
+    #   CONECTAR CALLBACKS
+    # -----------------------------
+    btn_incluir.config(
+        command=lambda: inv01_02.abrir_janela(janela, atualizar_grid)
+    )
+
+    btn_alterar.config(
+        command=lambda: inv01_03.alterar_registro(tree, atualizar_grid)
+    )
+
 
 # -----------------------------
 #       FUNÇÕES AUXILIARES
 # -----------------------------
-
 def deletar_registro(tree):
     item = tree.selection()
     janela = tree.master  # janela do grid
@@ -121,11 +149,18 @@ def deletar_registro(tree):
         for reg in registros:
             if len(reg) == 4:
                 tree.insert("", tk.END, values=reg)
+
+        # Atualiza aviso da soma dos percentuais
+        total_perc = inv00_0.soma_perc(conn)
         conn.close()
+
+        if total_perc != 100:
+            tree.master.children['!frame2'].children['!label'].config(
+                text=f"Soma dos Percentuais é {total_perc:.2f}%, o Limite é 100%!")
+        else:
+            tree.master.children['!frame2'].children['!label'].config(text="")
 
         messagebox.showinfo("Sucesso", "Registro excluído com sucesso!", parent=janela)
 
-    # Devolve o foco para a janela do grid
     janela.lift()
     janela.focus_force()
-
