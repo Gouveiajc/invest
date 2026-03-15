@@ -1,7 +1,11 @@
-"""Análise de Ativos 
-Tabela INV02
+"""
+Programa de Analise de Ativos
+Tela Inicial 
+JC Mar/2026
+Ver 1
+Banco de Dados inv.db
+Tabela inv04
 Módulo: inv23_01.py
-Fev/2026
 """
 
 # inv23_01.py
@@ -369,14 +373,16 @@ def calcular_status(percentual_calculado: float, percentual_limite: float) -> st
 # Monta toda a análise
 # ------------------------------------------------------------
 def obter_dados():
-    linhas = inv00_0.buscar_ativos_para_pesquisa()
+    linhas = inv00_0.buscar_ativos_pagadores()
     if not linhas:
         return [], [], []
 
     ativos = []
 
     for r in linhas:
+        r = dict(r)  
         qtd = r.get("Quantidade") or 0
+
         if qtd <= 0:
             continue
 

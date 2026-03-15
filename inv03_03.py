@@ -172,14 +172,18 @@ def abrir_janela_alteracao(root, tree, valores):
         obs = entry_obs.get().strip()
 
         tipo_sel = combo_tipo.get().strip()
-        if not tipo_sel:
+        segm_sel = combo_segm.get().strip()
+        atv_sel = combo_atv.get().strip()
+        vlr_sel = combo_vlr.get().strip()
+        if not segm_sel:
             messagebox.showwarning("Atenção", "Selecione um Tipo de Ativo.", parent=janela)
             return
 
-        tipo_id_novo = tipo_sel.split(" - ")[0]
-        tipo_id_antigo = valores[2]
-
-        vlr_flag = combo_vlr.get().split(" - ")[0]   # <-- NOVO
+        tipo_id = tipo_sel.split(" - ")[0]
+        segm_id_novo = segm_sel.split(" - ")[0]
+        segm_id_antigo = valores[3]
+        atv_id = atv_sel.split(" - ")[0]
+        vlr_id = vlr_sel.split(" - ")[0]
 
         try:
             perc_float = float(perc.replace(",", "."))
@@ -192,12 +196,12 @@ def abrir_janela_alteracao(root, tree, valores):
         conn = inv00_0.conectar()
 
         try:
-            if tipo_id_novo == tipo_id_antigo:
-                soma_atual = inv00_0.soma_perc_inv02(conn, tipo_id_novo)
+            if segm_id_novo == segm_id_antigo:
+                soma_atual = inv00_0.soma_perc_inv02(conn, segm_id_novo)
                 soma_sem_atual = soma_atual - perc_antigo
                 nova_soma = soma_sem_atual + perc_float
             else:
-                soma_atual_novo = inv00_0.soma_perc_inv02(conn, tipo_id_novo)
+                soma_atual_novo = inv00_0.soma_perc_inv02(conn, segm_id_novo)
                 nova_soma = soma_atual_novo + perc_float
 
             if nova_soma > 100:
@@ -207,7 +211,7 @@ def abrir_janela_alteracao(root, tree, valores):
                     return
 
             # Atualiza no backend — AGORA COM O NOVO CAMPO
-            inv00_0.atualizar_registro_inv02(conn, cod, desc, tipo_id_novo, perc_float, obs, vlr_flag)
+            inv00_0.atualizar_registro_inv02(conn, cod, desc, tipo_id, segm_id_novo, atv_id, vlr_id, perc_float, obs)
 
         finally:
             conn.close()
@@ -217,8 +221,8 @@ def abrir_janela_alteracao(root, tree, valores):
             valores_tree = tree.item(item, "values")
             if valores_tree[0] == cod:
                 tree.item(item, values=(
-                    cod, desc, tipo_id_novo, valores[3], valores[4], valores[5],
-                    valores[6], valores[7], valores[8], vlr_flag, valores[10],
+                    cod, desc, tipo_id, segm_id_novo, valores[4], valores[5],
+                    valores[6], valores[7], valores[8], vlr_id, valores[10],
                     perc_float, obs
                 ))
                 break

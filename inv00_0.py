@@ -195,14 +195,14 @@ def soma_perc_inv02(conn, tipo_id):
     return float(resultado[0]) if resultado else 0.0
 '''
 
-def atualizar_registro_inv02(conn, cod, desc, tipo_id, per, obs, vlr):
+def atualizar_registro_inv02(conn, cod, desc, tipo_id, segm_id, atv_id, vlr_id, perc, obs):
     try:
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE inv02
-            SET inv02_05 = ?, inv02_02 = ?, inv02_20 = ?, inv02_21 = ?, inv02_22 = ?
+            SET inv02_02 = ?, inv02_01 = ?, inv02_05 = ?, inv02_17 = ?, inv02_22 = ?, inv02_20 = ?, inv02_21 = ?
             WHERE inv02_06 = ?
-        """, (tipo_id, desc, per, obs, vlr, cod))
+        """, ( desc, tipo_id, segm_id, atv_id, vlr_id, perc, obs, cod))
         conn.commit()
     except sqlite3.Error as e:
         print(f"Erro ao alterar registro: {e}")
@@ -413,7 +413,6 @@ def excluir_registro_inv03(conn, id_registro):
     cursor.execute("DELETE FROM INV03 WHERE INV03_00 = ?", (id_registro,))
     conn.commit()
 
-#parte d
 # ============================================================
 #   TABELA INV04 — DIVIDENDOS
 # ============================================================
@@ -427,20 +426,36 @@ def buscar_ativos_pagadores():
     cur = con.cursor()
 
     sql = """
-        SELECT 
-            Inv02_05 AS CodigoSegmento,
-            Inv02_06 AS CodigoAtivo,
-            Inv02_07 AS Quantidade,
-            Inv02_17 AS AtivoExterior
-        FROM INV02
-        WHERE Inv02_22 = 'S'
+        SELECT
+            a.Inv02_06 AS CodigoAtivo,
+            a.Inv02_02 AS DescricaoAtivo,
+            a.Inv02_05 AS CodigoSegmento,
+            
+            s.Inv01_02 AS DescricaoSegmento,
+            s.Inv01_20 AS PercentualLimiteSegmento,
+
+            a.Inv02_01 AS CodigoTipo,
+
+            t.Inv00_02 AS DescricaoTipo,
+            t.Inv00_20 AS PercentualLimiteTipo,
+
+            a.Inv02_20 AS PercentualLimiteAtivo,
+            a.Inv02_07 AS Quantidade,
+            a.Inv02_09 AS CustoBRL,
+            a.Inv02_10 AS CustoUSD,
+            a.Inv02_17 AS AtivoExterior,
+            a.Inv02_22 AS UsaCotacao
+
+        FROM INV02 a
+        LEFT JOIN INV01 s ON s.Inv01_05 = a.Inv02_05
+        LEFT JOIN INV00 t ON t.Inv00_01 = a.Inv02_01
+
     """
 
     cur.execute(sql)
     dados = cur.fetchall()
     con.close()
     return dados
-
 
 # ------------------------------------------------------------
 # Verificar se dividendo já existe (chave: ativo + data pagamento)
