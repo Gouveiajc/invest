@@ -416,7 +416,49 @@ def excluir_registro_inv03(conn, id_registro):
 # ============================================================
 #   TABELA INV04 — DIVIDENDOS
 # ============================================================
+# ------------------------------------------------------------
+# Buscar ativos para análise (todos os ativos cadastrados)
+# ------------------------------------------------------------
+def buscar_ativos_pagadores():
+    con = conectar()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
 
+    sql = """
+        SELECT
+            -- ATIVO
+            a.Inv02_06,
+            a.Inv02_02,
+            a.Inv02_05,
+            a.Inv02_01,
+            a.Inv02_20,
+            a.Inv02_07,
+            a.Inv02_09,
+            a.Inv02_10,
+            a.Inv02_17,
+            a.Inv02_22,
+
+            -- SEGMENTO
+            s.Inv01_05,
+            s.Inv01_02,
+            s.Inv01_20,
+
+            -- TIPO
+            t.Inv00_01,
+            t.Inv00_02,
+            t.Inv00_20
+
+        FROM INV02 a
+        LEFT JOIN INV01 s ON s.Inv01_05 = a.Inv02_05
+        LEFT JOIN INV00 t ON t.Inv00_01 = a.Inv02_01
+    """
+
+    cur.execute(sql)
+    dados = cur.fetchall()
+    con.close()
+    return dados
+
+'''
 # ------------------------------------------------------------
 # Buscar ativos que pagam dividendos (Inv02_22 = 'S')
 # ------------------------------------------------------------
@@ -456,7 +498,7 @@ def buscar_ativos_pagadores():
     dados = cur.fetchall()
     con.close()
     return dados
-
+'''
 # ------------------------------------------------------------
 # Verificar se dividendo já existe (chave: ativo + data pagamento)
 # ------------------------------------------------------------
