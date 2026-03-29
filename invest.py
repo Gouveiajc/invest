@@ -13,16 +13,23 @@ import inv21_01
 import inv22_01
 import inv23_01
 import inv24_01
+import inv31_01
 
 
 class App:
+
     def __init__(self, root):
         self.root = root
         self.root.title("Sistema de Controle de Aplicação")
-        self.root.attributes("-fullscreen", True)
 
-        # Atalho para sair do modo fullscreen
-        self.root.bind("<Escape>", lambda e: self.root.attributes("-fullscreen", False))
+        # Inicia maximizado com botões X, minimizar e maximizar (Linux)
+        try:
+            self.root.attributes("-zoomed", True)
+        except:
+            self.root.state("zoomed")
+
+        # ESC volta ao tamanho normal
+        self.root.bind("<Escape>", lambda e: self.root.state("normal"))
 
         # Captura do clique no X
         self.root.protocol("WM_DELETE_WINDOW", self.sair)
@@ -41,7 +48,6 @@ class App:
             label="Tipo Ativos",
             command=lambda: inv01_01.abrir_lista(self.root)
         )
-        #menu_cadastro = Menu(menu_bar, tearoff=0)
         menu_cadastro.add_command(
             label="Segmentos", 
             command=lambda: inv02_01.abrir_lista(self.root)
@@ -49,7 +55,7 @@ class App:
         menu_cadastro.add_command(
             label="Ativos", 
             command=lambda: inv03_01.abrir_lista(self.root)
-            )
+        )
         
         menu_bar.add_cascade(label="Cadastro", menu=menu_cadastro)
         
@@ -58,26 +64,27 @@ class App:
         menu_manutencao.add_command(
             label="Movimento", 
             command=lambda: inv21_01.abrir_lista(self.root)
-            )
-        
+        )
         menu_manutencao.add_command(
             label="Consolidar", 
             command=lambda: inv22_01.conciliar_ativos()
-            )
+        )
         menu_manutencao.add_command(
             label="Analise", 
-         #   command=lambda: inv23_01.analisar_ativos()
-            command=lambda: inv23_01.executar_analise(root)
-            )
+            command=lambda: inv23_01.executar_analise(self.root)
+        )
         menu_manutencao.add_command(
             label="Dividendos", 
-            command=lambda: inv24_01.abrir_tela_dividendos(root)
-            )
+            command=lambda: inv24_01.abrir_tela_dividendos(self.root)
+        )
         menu_bar.add_cascade(label="Manutenção", menu=menu_manutencao)
 
         # MENU IMPRESSÃO
         menu_impressao = Menu(menu_bar, tearoff=0)
-        menu_impressao.add_command(label="Impressão de Dados", command=self.impressao)
+        menu_impressao.add_command(
+            label="Impressão de Ativos", 
+            command=lambda: inv31_01.gerar_pdf_ativos()
+        )
         menu_bar.add_cascade(label="Impressão", menu=menu_impressao)
 
         # MENU SAIR

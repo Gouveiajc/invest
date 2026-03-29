@@ -338,6 +338,29 @@ def reverter_posicao_inv02(conn, codigo_ativo, tipo_mov, quantidade, total_rs, t
 
     conn.commit()
 
+#Busca Dados para Impressão de Ativos
+def listar_ativos_inv02(conn):
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            A.Inv02_06 AS codigo_ativo,
+            A.Inv02_02 AS descricao_ativo,
+            A.Inv02_01 AS tipo_ativo,
+            T.Inv00_02 AS descricao_tipo,
+            A.Inv02_05 AS segmento,
+            S.Inv01_02 AS descricao_segmento,
+            A.Inv02_09 AS valor_aquisicao_rs,
+            A.Inv02_10 AS valor_aquisicao_usd,
+            A.Inv02_17 AS ativo_exterior,
+            A.Inv02_08 AS custo_medio,
+            A.Inv02_20 AS percentual_alvo
+        FROM Inv02 A
+        LEFT JOIN Inv00 T ON T.Inv00_01 = A.Inv02_01
+        LEFT JOIN Inv01 S ON S.Inv01_05 = A.Inv02_05
+        ORDER BY A.Inv02_01, A.Inv02_05, A.Inv02_06
+    """)
+    dados = cursor.fetchall()
+    return dados
 
 # ============================================================
 #   TABELA INV03
