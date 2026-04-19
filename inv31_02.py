@@ -5,11 +5,11 @@ JC Mar/2026
 Ver 1
 Banco de Dados inv.db
 Tabela inv04
-Módulo: inv31_01.py
+Módulo: inv31_02.py
 '''
 
 # ============================================================
-# inv31_01.py - Impressão de Ativos Nacionais em PDF
+# inv31_02.py - Impressão de Ativos Exterior em PDF
 # ============================================================
 
 from reportlab.lib.pagesizes import A4
@@ -21,6 +21,7 @@ from tkinter import ttk
 # Importa query e funções auxiliares
 import tkinter as tk
 import inv00_0 
+import inv23_01 
 
 # ------------------------------------------------------------
 # Função para desenhar cabeçalho em cada página
@@ -29,7 +30,7 @@ def cabecalho(pdf, pagina):
     data_hoje = datetime.now().strftime("%d/%m/%Y")
 
     pdf.setFont("Times-Bold", 12)
-    pdf.drawString(30, 820, "RELATÓRIO DE ATIVOS NACIONAIS")
+    pdf.drawString(30, 820, "RELATÓRIO DE ATIVOS EXTERIOR")
 
     # Data + Página
     pdf.setFont("Times-Roman", 9)
@@ -50,16 +51,16 @@ def cabecalho(pdf, pagina):
 # ------------------------------------------------------------
 # Função principal para gerar PDF
 # ------------------------------------------------------------
-def gerar_pdf_ativos_nac():
+def gerar_pdf_ativos_ext():
 
     # Conexão com banco
     conn = inv00_0.conectar()
 
     # Buscar Dados
-    dados = inv00_0.listar_ativos_inv02(conn,'N')
+    dados = inv00_0.listar_ativos_inv02(conn,'S')
 
     # Criação do PDF
-    pdf = canvas.Canvas("ativos_nac.pdf", pagesize=A4)
+    pdf = canvas.Canvas("ativos_ext.pdf", pagesize=A4)
     pdf.setFont("Times-Roman", 5)
 
     pagina = 1
@@ -67,12 +68,17 @@ def gerar_pdf_ativos_nac():
 
     y = 780
 
+    # Busca Cotação do dólar (Ativos no Exterior) 
+    cotacao_usd = inv23_01.obter_cotacao_moeda("USD")
+
     for row in dados:
         (
             codigo, descricao, tipo, desc_tipo, segmento, desc_segmento,qtde,
             valor_rs, valor_usd, custo_medio, pct
         ) = row
 
+        valor_rs = valor_usd * cotacao_usd
+ 
         pdf.drawString(30,  y, str(codigo))
         pdf.drawString(90,  y, str(descricao)[:25])
         pdf.drawString(250, y, f"{tipo} - {desc_tipo[:10]}")
