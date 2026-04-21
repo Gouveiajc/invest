@@ -250,7 +250,7 @@ def atualizar_posicao_inv02(conn, codigo_ativo, tipo_mov, quantidade, total_rs, 
             novo_total_us = 0
 
         preco_r = novo_total_r / nova_qtd if nova_qtd > 0 else 0
-        preco_us = novo_total_us / nova_qtd if (nova_qtd > 0 and usa_dolar == "S") else 0
+    #   preco_us = novo_total_us / nova_qtd if (nova_qtd > 0 and usa_dolar == "S") else 0
 
     # VENDA
     elif tipo_mov == "V":
@@ -265,17 +265,16 @@ def atualizar_posicao_inv02(conn, codigo_ativo, tipo_mov, quantidade, total_rs, 
             novo_total_us = 0
 
         preco_r = novo_total_r / nova_qtd if nova_qtd > 0 else 0
-        preco_us = novo_total_us / nova_qtd if (nova_qtd > 0 and usa_dolar == "S") else 0
+    #   preco_us = novo_total_us / nova_qtd if (nova_qtd > 0 and usa_dolar == "S") else 0
 
     cursor.execute("""
         UPDATE INV02 SET
             INV02_07 = ?,
             INV02_09 = ?,
             INV02_08 = ?,
-            INV02_10 = ?,
-            INV02_20 = ?
+            INV02_10 = ?
         WHERE INV02_06 = ?
-    """, (nova_qtd, novo_total_r, preco_r, novo_total_us, preco_us, codigo_ativo))
+    """, (nova_qtd, novo_total_r, preco_r, novo_total_us, codigo_ativo))
 
     conn.commit()
 

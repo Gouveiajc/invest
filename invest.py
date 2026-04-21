@@ -6,9 +6,9 @@ Ver. 1
 
 import tkinter as tk
 from tkinter import Menu
-import inv01_01
-import inv02_01
-import inv03_01
+import inv11_01
+import inv12_01
+import inv13_01
 import inv21_01
 import inv22_01
 import inv23_01
@@ -46,15 +46,15 @@ class App:
         menu_cadastro = Menu(menu_bar, tearoff=0)
         menu_cadastro.add_command(
             label="Tipo Ativos",
-            command=lambda: inv01_01.abrir_lista(self.root)
+            command=lambda: inv11_01.abrir_lista(self.root)
         )
         menu_cadastro.add_command(
             label="Segmentos", 
-            command=lambda: inv02_01.abrir_lista(self.root)
+            command=lambda: inv12_01.abrir_lista(self.root)
         )
         menu_cadastro.add_command(
             label="Ativos", 
-            command=lambda: inv03_01.abrir_lista(self.root)
+            command=lambda: inv13_01.abrir_lista(self.root)
         )
         
         menu_bar.add_cascade(label="Cadastro", menu=menu_cadastro)
