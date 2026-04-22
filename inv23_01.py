@@ -12,11 +12,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import yfinance as yf
 import inv00_0
+import inv00_1
 
 COR_VERDE = "VERDE"
 COR_AMARELO = "AMARELO"
 COR_VERMELHO = "VERMELHO"
-
 
 # ============================================================
 # JANELA DE AGUARDE
@@ -83,63 +83,6 @@ def ajustar_ticker(ticker, exterior):
 
     return ticker + ".SA"
 
-
-# ============================================================
-# BUSCA DE COTAÇÕES EM LOTE
-# ============================================================
-def obter_cotacoes_em_lote(lista_tickers):
-    if not lista_tickers:
-        return {}
-
-    dados = yf.download(lista_tickers, period="1d", group_by="ticker", progress=False)
-
-    cotacoes = {}
-
-    for t in lista_tickers:
-        try:
-            if len(lista_tickers) == 1:
-                preco = float(dados["Close"].iloc[-1])
-            else:
-                preco = float(dados[t]["Close"].iloc[-1])
-            cotacoes[t] = preco
-        except:
-            cotacoes[t] = 0.0
-
-    return cotacoes
-
-
-# ============================================================
-# COTAÇÃO DE MOEDA
-# ============================================================
-def obter_cotacao_moeda(moeda):
-    pares = {
-        "USD": "USDBRL=X",
-        "EUR": "EURBRL=X",
-        "CAD": "CADBRL=X",
-        "GBP": "GBPBRL=X",
-        "JPY": "JPYBRL=X"
-    }
-
-    if moeda not in pares:
-        return 1.0
-
-    try:
-        t = yf.Ticker(pares[moeda])
-        info = dict(t.fast_info or {})
-        preco = info.get("last_price") or info.get("regularMarketPrice")
-
-        if preco:
-            return float(preco)
-
-        hist = t.history(period="5d")
-        if not hist.empty:
-            return float(hist["Close"].iloc[-1])
-
-    except:
-        pass
-
-    return 1.0
-
 # ============================================================
 # STATUS
 # ============================================================
@@ -173,7 +116,7 @@ def obter_dados():
         if r["Inv02_22"] == "S":
             tickers.append(ajustar_ticker(r["Inv02_06"], r["Inv02_17"]))
 
-    cotacoes = obter_cotacoes_em_lote(tickers)
+    cotacoes = inv00_1.obter_cotacoes_em_lote(tickers)
 
     # -----------------------------
     # Processar ativos
@@ -193,7 +136,7 @@ def obter_dados():
         preco_original = cotacoes.get(ticker, 0.0)
 
         moeda = "USD" if exterior == "S" else "BRL"
-        cotacao_moeda = obter_cotacao_moeda(moeda)
+        cotacao_moeda = inv00_1.obter_cotacao_moeda(moeda)
 
         # -----------------------------
         # Cálculo do valor

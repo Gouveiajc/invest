@@ -1,9 +1,11 @@
 '''
-Programa de Validar Dados
+Rotinas Diversas
 JC 01/2026
 Ver 1
 
 '''
+import yfinance as yf
+
 def validar_campos(cod, desc, seg, perc):
 
     # Campos obrigatórios
@@ -125,4 +127,65 @@ def iso_compacto_para_br(data_iso):
     if not data_iso:
         return ""
     return f"{data_iso[6:8]}/{data_iso[4:6]}/{data_iso[0:4]}"
+
+# ============================================================
+#   FUNÇÕES DE CONVERSÃO PONTOS E VIRGULAS
+# ============================================================
+def brstilo(num):
+    return f"{num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# ============================================================
+# COTAÇÃO DE MOEDA
+# ============================================================
+def obter_cotacao_moeda(moeda):
+    pares = {
+        "USD": "USDBRL=X",
+        "EUR": "EURBRL=X",
+        "CAD": "CADBRL=X",
+        "GBP": "GBPBRL=X",
+        "JPY": "JPYBRL=X"
+    }
+
+    if moeda not in pares:
+        return 1.0
+
+    try:
+        t = yf.Ticker(pares[moeda])
+        info = dict(t.fast_info or {})
+        preco = info.get("last_price") or info.get("regularMarketPrice")
+
+        if preco:
+            return float(preco)
+
+        hist = t.history(period="5d")
+        if not hist.empty:
+            return float(hist["Close"].iloc[-1])
+
+    except:
+        pass
+
+    return 1.0
+
+# ============================================================
+# BUSCA DE COTAÇÕES EM LOTE
+# ============================================================
+def obter_cotacoes_em_lote(lista_tickers):
+    if not lista_tickers:
+        return {}
+
+    dados = yf.download(lista_tickers, period="1d", group_by="ticker", progress=False)
+
+    cotacoes = {}
+
+    for t in lista_tickers:
+        try:
+            if len(lista_tickers) == 1:
+                preco = float(dados["Close"].iloc[-1])
+            else:
+                preco = float(dados[t]["Close"].iloc[-1])
+            cotacoes[t] = preco
+        except:
+            cotacoes[t] = 0.0
+
+    return cotacoes
 
