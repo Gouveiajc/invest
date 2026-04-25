@@ -5,6 +5,9 @@ Ver 1
 
 '''
 import yfinance as yf
+import tkinter as tk
+from tkinter import ttk
+
 
 def validar_campos(cod, desc, seg, perc):
 
@@ -167,6 +170,40 @@ def obter_cotacao_moeda(moeda):
     return 1.0
 
 # ============================================================
+# BUSCA DE COTAÇÕES
+# ============================================================
+def obter_valor_atual(codigo, exterior="N"):
+    """
+    Retorna o valor atual do ativo usando yfinance.
+    Usa ajustar_ticker para garantir o formato correto.
+    """
+
+    # Ajusta o ticker conforme nacional/exterior
+    ticker = ajustar_ticker(codigo, exterior)
+
+    if not ticker:
+        return None
+
+    try:
+        yf_ticker = yf.Ticker(ticker)
+
+        # Fast info é mais rápido e leve
+        info = yf_ticker.fast_info
+        preco = info.get("last_price")
+
+        # Se não tiver last_price, tenta pegar o fechamento do último dia
+        if preco is None:
+            hist = yf_ticker.history(period="1d")
+            if not hist.empty:
+                preco = hist["Close"].iloc[-1]
+
+        return float(preco) if preco is not None else None
+
+    except Exception as e:
+        print(f"Erro ao obter cotação de {ticker}: {e}")
+        return None
+    
+# ============================================================
 # BUSCA DE COTAÇÕES EM LOTE
 # ============================================================
 def obter_cotacoes_em_lote(lista_tickers):
@@ -189,3 +226,43 @@ def obter_cotacoes_em_lote(lista_tickers):
 
     return cotacoes
 
+# ============================================================
+# MENSAGENS
+# ============================================================
+def mensagem_sucesso(texto):
+    janela = tk.Toplevel()
+    janela.title("Informação")
+    janela.geometry("300x120")
+    janela.resizable(False, False)
+
+    janela.update_idletasks()
+    largura = 300
+    altura = 120
+    x = (janela.winfo_screenwidth() // 2) - (largura // 2)
+    y = (janela.winfo_screenheight() // 2) - (altura // 2)
+    janela.geometry(f"{largura}x{altura}+{x}+{y}")
+
+    janela.grab_set()
+
+    lbl = ttk.Label(janela, text=texto, font=("Arial", 11))
+    lbl.pack(pady=15)
+
+    btn = ttk.Button(janela, text="OK", command=janela.destroy)
+    btn.pack(pady=5)
+
+# ============================================================
+# AJUSTE DE TICKER
+# ============================================================
+def ajustar_ticker(ticker, exterior):
+    if not ticker:
+        return ""
+
+    ticker = ticker.strip().upper()
+
+    if exterior == "S":
+        return ticker
+
+    if ticker.endswith(".SA"):
+        return ticker
+
+    return ticker + ".SA"

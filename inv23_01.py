@@ -65,24 +65,6 @@ def centralizar_janela(janela, largura, altura):
 
     janela.geometry(f"{largura}x{altura}+{x}+{y}")
 
-
-# ============================================================
-# AJUSTE DE TICKER
-# ============================================================
-def ajustar_ticker(ticker, exterior):
-    if not ticker:
-        return ""
-
-    ticker = ticker.strip().upper()
-
-    if exterior == "S":
-        return ticker
-
-    if ticker.endswith(".SA"):
-        return ticker
-
-    return ticker + ".SA"
-
 # ============================================================
 # STATUS
 # ============================================================
@@ -114,7 +96,7 @@ def obter_dados():
     tickers = []
     for r in linhas:
         if r["Inv02_22"] == "S":
-            tickers.append(ajustar_ticker(r["Inv02_06"], r["Inv02_17"]))
+            tickers.append(inv00_1.ajustar_ticker(r["Inv02_06"], r["Inv02_17"]))
 
     cotacoes = inv00_1.obter_cotacoes_em_lote(tickers)
 
@@ -132,7 +114,7 @@ def obter_dados():
         custo_brl = float(r["Inv02_09"])
         custo_usd = float(r["Inv02_10"])
 
-        ticker = ajustar_ticker(r["Inv02_06"], exterior)
+        ticker = inv00_1.ajustar_ticker(r["Inv02_06"], exterior)
         preco_original = cotacoes.get(ticker, 0.0)
 
         moeda = "USD" if exterior == "S" else "BRL"

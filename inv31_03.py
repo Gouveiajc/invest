@@ -1,5 +1,5 @@
 '''
-Programa de Impressão de Ativos Nacionais
+Programa de Impressão de Ativos Exterior
 Tela Inicial 
 JC Mar/2026
 Ver 1
@@ -9,9 +9,8 @@ Módulo: inv31_02.py
 '''
 
 # ============================================================
-# inv31_01.py - Impressão de Ativos Nacionais em PDF
+# inv31_02.py - Impressão de Ativos Exterior em PDF
 # ============================================================
-
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
@@ -20,7 +19,7 @@ from tkinter import ttk
 
 # Importa query e funções auxiliares
 import tkinter as tk
-import inv00_0 
+import inv00_0
 import inv00_1
 
 # ------------------------------------------------------------
@@ -30,7 +29,7 @@ def cabecalho(pdf, pagina):
     data_hoje = datetime.now().strftime("%d/%m/%Y")
 
     pdf.setFont("Times-Bold", 12)
-    pdf.drawString(30, 820, "RELATÓRIO DE ATIVOS NACIONAIS")
+    pdf.drawString(30, 820, "RELATÓRIO DE ATIVOS EXTERIOR")
 
     # Data + Página
     pdf.setFont("Times-Roman", 9)
@@ -38,36 +37,42 @@ def cabecalho(pdf, pagina):
     pdf.drawString(500, 820, f"Página {pagina}")
 
     # Cabeçalho das colunas
-    pdf.setFont("Times-Bold", 9)
+    pdf.setFont("Times-Bold", 7)
     y = 800
     pdf.drawString(30,  y, "Código")
-    pdf.drawString(90,  y, "Descrição")
-    pdf.drawString(250, y, "Tipo")
-    pdf.drawString(330, y, "Segmento")
-    pdf.drawString(420, y, "Aquisição (R$)")
-    pdf.drawString(490, y, "Custo Médio (R$)")
-    pdf.drawString(560, y, "% Alvo")
+    pdf.drawString(70,  y, "Descrição")
+    pdf.drawString(180, y, "Tipo")
+    pdf.drawString(260, y, "Segmento")
+    pdf.drawString(340, y, "Aquisição (US$)")
+    pdf.drawString(400, y, "Aquisição (R$)")
+    pdf.drawString(460, y, "Custo Médio (R$)")
+    pdf.drawString(520, y, "% Alvo")
 
 # ------------------------------------------------------------
 # Função principal para gerar PDF
 # ------------------------------------------------------------
-def gerar_pdf_ativos_nac():
+def gerar_pdf_ativos_ext():
 
     # Conexão com banco
     conn = inv00_0.conectar()
 
     # Buscar Dados
-    dados = inv00_0.listar_ativos_inv02(conn,'N')
+    dados = inv00_0.listar_ativos_inv02(conn,'S')
 
     # Criação do PDF
-    pdf = canvas.Canvas("ativos_nac.pdf", pagesize=A4)
+    pdf = canvas.Canvas("ativos_ext.pdf", pagesize=A4)
     pdf.setFont("Times-Roman", 5)
 
     pagina = 1
     cabecalho(pdf, pagina)
 
-    y = 780
-    total_aquisicao = 0
+    y = 790
+    
+    total_rs = 0
+    total_us = 0
+    
+    # Busca Cotação do dólar (Ativos no Exterior) 
+    cotacao_usd = inv00_1.obter_cotacao_moeda("USD")
 
     for row in dados:
         (
@@ -75,20 +80,22 @@ def gerar_pdf_ativos_nac():
             valor_rs, valor_usd, custo_medio, pct
         ) = row
 
-        total_aquisicao += valor_rs
+ 
+        valor_rs = valor_usd * cotacao_usd
+        total_rs += valor_rs
+        total_us += valor_usd
 
+        pdf.setFont("Times-Bold", 7)
         pdf.drawString(30,  y, str(codigo))
-        pdf.drawString(90,  y, str(descricao)[:25])
-        pdf.drawString(250, y, f"{tipo} - {desc_tipo[:10]}")
-        pdf.drawString(330, y, f"{segmento} - {desc_segmento[:10]}")
-    #    pdf.drawRightString(480, y, f"{valor_rs:,.2f}")
-    #    pdf.drawRightString(540, y, f"{custo_medio:,.2f}")
-    #    pdf.drawRightString(590, y, f"{pct:.2f}")
-        pdf.drawRightString(480, y, inv00_1.brstilo(valor_rs))
-        pdf.drawRightString(540, y, inv00_1.brstilo(custo_medio))
-        pdf.drawRightString(590, y, inv00_1.brstilo(pct))
+        pdf.drawString(70,  y, str(descricao)[:22])
+        pdf.drawString(180, y, f"{tipo} - {desc_tipo[:12]}")
+        pdf.drawString(260, y, f"{segmento} - {desc_segmento[:12]}")
+        pdf.drawRightString(370, y, inv00_1.brstilo(valor_usd))
+        pdf.drawRightString(430, y, inv00_1.brstilo(valor_rs))
+        pdf.drawRightString(490, y, inv00_1.brstilo(custo_medio))
+        pdf.drawRightString(540, y, inv00_1.brstilo(pct))
 
-        y -= 12
+        y -= 8
 
         if y < 50:
             pdf.showPage()
@@ -98,9 +105,10 @@ def gerar_pdf_ativos_nac():
 
     #Imprime Total
     pdf.setFont("Times-Bold",9)
-    pdf.drawRightString(420, y - 10, "Total: ")
-    pdf.drawRightString(480, y - 10, inv00_1.brstilo(total_aquisicao))
-        
+    pdf.drawRightString(290, y - 10, "Total US$/R$: ")
+    pdf.drawRightString(370, y - 10, inv00_1.brstilo(total_us))    
+    pdf.drawRightString(440, y - 10, inv00_1.brstilo(total_rs))    
+
     pdf.save()
     conn.close()
 
@@ -111,4 +119,4 @@ def gerar_pdf_ativos_nac():
 if __name__ == "__main__":
     gerar_pdf_ativos()
 '''
-    
+   

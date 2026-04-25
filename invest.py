@@ -15,6 +15,7 @@ import inv23_01
 import inv24_01
 import inv31_01
 import inv31_02
+import inv31_03
 
 class App:
 
@@ -82,12 +83,16 @@ class App:
         # MENU IMPRESSÃO
         menu_impressao = Menu(menu_bar, tearoff=0)
         menu_impressao.add_command(
+            label="Impressão de Ativos Geral", 
+            command=lambda: inv31_01.gerar_pdf_ativos_geral()
+        )
+        menu_impressao.add_command(
             label="Impressão de Ativos Nacionais", 
-            command=lambda: inv31_01.gerar_pdf_ativos_nac()
+            command=lambda: inv31_02.gerar_pdf_ativos_nac()
         )
         menu_impressao.add_command(
             label="Impressão de Ativos Exterior", 
-            command=lambda: inv31_02.gerar_pdf_ativos_ext()
+            command=lambda: inv31_03.gerar_pdf_ativos_ext()
         )
         menu_bar.add_cascade(label="Impressão", menu=menu_impressao)
 

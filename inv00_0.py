@@ -363,10 +363,10 @@ def listar_ativos_inv02(conn, ext):
     dados = cursor.fetchall()
     return dados
 
-'''
-def listar_ativos_inv02(conn,ext):
+#Busca Dados para Impressão de Ativos Geral
+def listar_ativos_inv02_geral(conn):
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute('''
         SELECT 
             A.Inv02_06 AS codigo_ativo,
             A.Inv02_02 AS descricao_ativo,
@@ -374,21 +374,22 @@ def listar_ativos_inv02(conn,ext):
             T.Inv00_02 AS descricao_tipo,
             A.Inv02_05 AS segmento,
             S.Inv01_02 AS descricao_segmento,
-            A.Inv02_07 AS qtde
+            A.Inv02_07 AS qtde,
             A.Inv02_09 AS valor_aquisicao_rs,
             A.Inv02_10 AS valor_aquisicao_usd,
-            A.Inv02_17 AS ativo_exterior,
             A.Inv02_08 AS custo_medio,
-            A.Inv02_20 AS percentual_alvo
+            A.Inv02_20 AS percentual_alvo,
+            A.Inv02_22 AS atualiza_valor,
+            A.Inv02_17 AS ativo_exterior
         FROM Inv02 A
         LEFT JOIN Inv00 T ON T.Inv00_01 = A.Inv02_01
         LEFT JOIN Inv01 S ON S.Inv01_05 = A.Inv02_05
-        WHERE Inv02_17 = 'ext'
         ORDER BY A.Inv02_01, A.Inv02_05, A.Inv02_06
-    """)
+        ''')
+
     dados = cursor.fetchall()
     return dados
-'''
+
 # ============================================================
 #   TABELA INV03
 # ============================================================
