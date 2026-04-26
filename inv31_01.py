@@ -18,21 +18,26 @@ import inv00_0
 import inv00_1
 
 def cabecalho(pdf, pagina):
+    y = 820 
     pdf.setFont("Times-Bold", 11)
-    pdf.drawString(30, 820, "RELATÓRIO DE ATIVOS - INV02")
+    pdf.drawString(30, y, "RELATÓRIO DE ATIVOS - GERAL")
 
     data = datetime.now().strftime("%d/%m/%Y")
     pdf.setFont("Times-Roman", 7)
-    pdf.drawString(450, 820, f"Data: {data}")
-    pdf.drawString(520, 820, f"Pág: {pagina}")
+    pdf.drawString(450, y, f"Data: {data}")
+    pdf.drawString(520, y, f"Pág: {pagina}")
+
+    y -= 20
 
     pdf.setFont("Times-Bold", 7)
-    pdf.drawString(30, 800, "Código")
-    pdf.drawString(90, 800, "Descrição")
-    pdf.drawString(260, 800, "Qtd")
-    pdf.drawString(300, 800, "Valor Atual R$")
-    pdf.drawString(380, 800, "Valor Atual US$")
-    pdf.drawString(460, 800, "% Investir")
+    pdf.drawString(50, y, "Código")
+    pdf.drawString(120, y, "Descrição")
+    pdf.drawString(240, y, "Qtd")
+    pdf.drawString(260, y, "Valor Atual R$")
+    pdf.drawString(320, y, "Valor Atual US$")
+    pdf.drawString(390, y, "Valor Total R$")
+    pdf.drawString(450, y, "Valor Total US$")
+    pdf.drawString(510, y, "% Investir")
 
     pdf.line(30, 795, 570, 795)
 
@@ -78,25 +83,27 @@ def montar_dados_relatorio(conn, cotacao_usd):
             valor_us = 0
 
         # Totais gerais
-        total_geral_rs += valor_rs
-        total_geral_us += valor_us
+        total_geral_rs += (valor_rs * qtde)
+        total_geral_us += (valor_us * qtde)
 
         # Totais por Tipo
         if tipo not in totais_tipo:
             totais_tipo[tipo] = 0
-        totais_tipo[tipo] += valor_rs
+        totais_tipo[tipo] += (valor_rs * qtde)
 
         # Totais por Segmento
         if tipo not in totais_segmento:
             totais_segmento[tipo] = {}
         if segmento not in totais_segmento[tipo]:
             totais_segmento[tipo][segmento] = 0
-        totais_segmento[tipo][segmento] += valor_rs
+        totais_segmento[tipo][segmento] += (valor_rs * qtde)
 
         # Guarda item
         rel.append({
             "tipo": tipo,
+            "desc_tipo":desc_tipo,
             "segmento": segmento,
+            "desc_seg":desc_segmento,
             "codigo": codigo,
             "descricao": descricao,
             "qtde": qtde,
@@ -118,7 +125,7 @@ def gerar_pdf_ativos_geral():
 
     pdf = canvas.Canvas("ativos_geral.pdf", pagesize=A4)
     pagina = 1
-    y = 780
+    y = 790
 
     cabecalho(pdf, pagina)
 
@@ -129,32 +136,41 @@ def gerar_pdf_ativos_geral():
 
         # QUEBRA DE TIPO
         if item["tipo"] != tipo_atual:
+            y -= 5
             tipo_atual = item["tipo"]
+            desc_tp_atual = item["desc_tipo"]
             valor_tipo = totais_tipo[tipo_atual]
             perc_tipo = (valor_tipo / total_geral_rs) * 100
 
             pdf.setFont("Times-Bold", 8)
-            pdf.drawString(30, y, f"TIPO {tipo_atual} - Total R$ {valor_tipo:,.2f} ({perc_tipo:.2f}%)")
-            y -= 12
+            pdf.drawString(30, y, f"TIPO {tipo_atual} {desc_tp_atual} - Total R$ {valor_tipo:,.2f} ({perc_tipo:.2f}%)")
+            y -= 10
 
         # QUEBRA DE SEGMENTO
         if item["segmento"] != segmento_atual:
             segmento_atual = item["segmento"]
+            desc_seg_atual = item["desc_seg"]
             valor_seg = totais_segmento[tipo_atual][segmento_atual]
             perc_seg = (valor_seg / valor_tipo) * 100
 
             pdf.setFont("Times-Bold", 7)
-            pdf.drawString(40, y, f"Segmento {segmento_atual} - R$ {valor_seg:,.2f} ({perc_seg:.2f}%)")
+            pdf.drawString(40, y, f"Segmento {segmento_atual} {desc_seg_atual} - R$ {valor_seg:,.2f} ({perc_seg:.2f}%)")
             y -= 10
+
+        #Calculo Valor Total Atual
+        valor_atual_rs = item['qtde'] * item['valor_rs']
+        valor_atual_us = item['qtde'] * item['valor_us']
 
         # DETALHE DO ATIVO
         pdf.setFont("Times-Roman", 6)
         pdf.drawString(50, y, f"{item['codigo']}")
         pdf.drawString(90, y, f"{item['descricao'][:40]}")
-        pdf.drawRightString(310, y, f"{item['qtde']}")
-        pdf.drawRightString(380, y, f"{item['valor_rs']:,.2f}")
-        pdf.drawRightString(460, y, f"{item['valor_us']:,.2f}")
-        pdf.drawRightString(540, y, f"{item['perc_inv']:,.2f}%")
+        pdf.drawRightString(250, y, f"{item['qtde']}")
+        pdf.drawRightString(300, y, inv00_1.brstilo(item['valor_rs']) )
+        pdf.drawRightString(360, y, inv00_1.brstilo(item['valor_us']) )
+        pdf.drawRightString(420, y, inv00_1.brstilo(valor_atual_rs) )
+        pdf.drawRightString(490, y, inv00_1.brstilo(valor_atual_us) )
+        pdf.drawRightString(540, y, inv00_1.brstilo(item['perc_inv']) )
 
         y -= 8
 
