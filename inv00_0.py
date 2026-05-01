@@ -372,13 +372,15 @@ def listar_ativos_inv02_geral(conn):
             A.Inv02_02 AS descricao_ativo,
             A.Inv02_01 AS tipo_ativo,
             T.Inv00_02 AS descricao_tipo,
+            T.Inv00_20 AS percentual_alvo_00,
             A.Inv02_05 AS segmento,
             S.Inv01_02 AS descricao_segmento,
+            S.Inv01_20 AS percentual_alvo_01,
             A.Inv02_07 AS qtde,
             A.Inv02_09 AS valor_aquisicao_rs,
             A.Inv02_10 AS valor_aquisicao_usd,
             A.Inv02_08 AS custo_medio,
-            A.Inv02_20 AS percentual_alvo,
+            A.Inv02_20 AS percentual_alvo_02,
             A.Inv02_22 AS atualiza_valor,
             A.Inv02_17 AS ativo_exterior
         FROM Inv02 A
