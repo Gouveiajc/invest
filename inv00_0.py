@@ -511,47 +511,6 @@ def buscar_ativos_pagadores():
     con.close()
     return dados
 
-'''
-# ------------------------------------------------------------
-# Buscar ativos que pagam dividendos (Inv02_22 = 'S')
-# ------------------------------------------------------------
-def buscar_ativos_pagadores():
-    con = conectar()
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-
-    sql = """
-        SELECT
-            a.Inv02_06 AS CodigoAtivo,
-            a.Inv02_02 AS DescricaoAtivo,
-            a.Inv02_05 AS CodigoSegmento,
-            
-            s.Inv01_02 AS DescricaoSegmento,
-            s.Inv01_20 AS PercentualLimiteSegmento,
-
-            a.Inv02_01 AS CodigoTipo,
-
-            t.Inv00_02 AS DescricaoTipo,
-            t.Inv00_20 AS PercentualLimiteTipo,
-
-            a.Inv02_20 AS PercentualLimiteAtivo,
-            a.Inv02_07 AS Quantidade,
-            a.Inv02_09 AS CustoBRL,
-            a.Inv02_10 AS CustoUSD,
-            a.Inv02_17 AS AtivoExterior,
-            a.Inv02_22 AS UsaCotacao
-
-        FROM INV02 a
-        LEFT JOIN INV01 s ON s.Inv01_05 = a.Inv02_05
-        LEFT JOIN INV00 t ON t.Inv00_01 = a.Inv02_01
-
-    """
-
-    cur.execute(sql)
-    dados = cur.fetchall()
-    con.close()
-    return dados
-'''
 # ------------------------------------------------------------
 # Verificar se dividendo já existe (chave: ativo + data pagamento)
 # ------------------------------------------------------------
