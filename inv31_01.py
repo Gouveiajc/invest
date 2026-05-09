@@ -33,8 +33,8 @@ def cabecalho(pdf, pagina):
     pdf.drawString(50, y, "Código")
     pdf.drawString(120, y, "Descrição")
     pdf.drawString(230, y, "Qtd")
-    pdf.drawString(250, y, "Vlr Atual R$")
-    pdf.drawString(300, y, "Vlr Atual US$")
+    pdf.drawString(250, y, "Un.Atual R$")
+    pdf.drawString(300, y, "Un.Atual US$")
     pdf.drawString(350, y, "Vlr Total R$")
     pdf.drawString(400, y, "Vlr Total US$")
     pdf.drawString(450, y, "% Investir")
@@ -103,14 +103,14 @@ def montar_dados_relatorio(conn, cotacao_usd):
             valor_unit_usd = preco_original if exterior == "S" else 0
         else:
             if exterior == "S":
-                valor_unit_brl = custo_usd * cotacao_moeda
-                valor_unit_usd = custo_usd
+                valor_unit_brl = (custo_usd * cotacao_moeda) / qtde
+                valor_unit_usd = custo_usd / qtde
             else:
                 valor_unit_brl = custo_brl
                 valor_unit_usd = 0
 
         total_brl = valor_unit_brl * qtde
-        total_usd = valor_unit_usd * qtde if exterior == "S" else 0
+        total_usd = valor_unit_usd  * qtde if exterior == "S" else 0
 
         # 5) Totais gerais
         total_geral_rs += total_brl
