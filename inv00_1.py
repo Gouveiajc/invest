@@ -206,6 +206,7 @@ def obter_valor_atual(codigo, exterior="N"):
 # ============================================================
 # BUSCA DE COTAÇÕES EM LOTE
 # ============================================================
+'''
 def obter_cotacoes_em_lote(lista_tickers):
     if not lista_tickers:
         return {}
@@ -222,6 +223,46 @@ def obter_cotacoes_em_lote(lista_tickers):
                 preco = float(dados[t]["Close"].iloc[-1])
             cotacoes[t] = preco
         except:
+            cotacoes[t] = 0.0
+
+    return cotacoes
+'''
+def obter_cotacoes_em_lote(lista_tickers):
+    if not lista_tickers:
+        return {}
+
+    dados = yf.download(lista_tickers, period="1d", group_by="ticker", progress=False)
+
+    cotacoes = {}
+
+    for t in lista_tickers:
+        try:
+            # Caso 1: apenas 1 ticker → DataFrame simples
+            if len(lista_tickers) == 1:
+                df = dados
+            else:
+                df = dados[t]
+
+            # Garante que existe coluna Close
+            if "Close" not in df.columns:
+                raise ValueError("Sem coluna Close")
+
+            # Remove valores nulos
+            serie = df["Close"].dropna()
+
+            # Garante que existe pelo menos 1 valor válido
+            if serie.empty:
+                raise ValueError("Sem dados de preço")
+
+            preco = float(serie.iloc[-1])
+
+            # Se vier nan, força fallback
+            if preco != preco:  # nan != nan
+                raise ValueError("Preço inválido")
+
+            cotacoes[t] = preco
+
+        except Exception:
             cotacoes[t] = 0.0
 
     return cotacoes
