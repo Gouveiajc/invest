@@ -391,5 +391,4 @@ def abrir_grids(tipos, segmentos, ativos):
         )
 
     tree.pack(fill="both", expand=True)
-
-
+    
