@@ -62,47 +62,6 @@ def centralizar_janela(janela, largura, altura):
     janela.geometry(f"{largura}x{altura}+{x}+{y}")
 
 # ============================================================
-# STATUS / REGRAS
-# ============================================================
-def calcular_status(percentual, limite):
-    """
-    Retorna:
-      VERDE    → percentual <= 85% do limite
-      AMARELO  → percentual <= 95% do limite
-      VERMELHO → acima de 95% do limite
-    """
-    if limite <= 0:
-        return ""
-
-    if percentual <= limite * 0.85:
-        return COR_VERDE
-    elif percentual <= limite * 0.95:
-        return COR_AMARELO
-    else:
-        return COR_VERMELHO
-
-def eh_compra(status):
-    return status in (COR_VERDE, COR_AMARELO)
-
-def eh_manter(status):
-    return status == COR_VERMELHO
-
-def traduzir_status(status):
-    """
-    Converte a cor lógica em texto para o grid:
-      VERDE    → Comprar
-      AMARELO  → Neutro
-      VERMELHO → Manter
-    """
-    if status == COR_VERDE:
-        return "Comprar"
-    elif status == COR_AMARELO:
-        return "Neutro"
-    elif status == COR_VERMELHO:
-        return "Manter"
-    return ""
-
-# ============================================================
 # PROCESSAMENTO PRINCIPAL
 # ============================================================
 def obter_dados():
@@ -210,7 +169,7 @@ def obter_dados():
 
     for t in tipos.values():
         t["PercentualCalculado"] = (t["Total"] / total_geral) * 100 if total_geral > 0 else 0
-        t["Status"] = calcular_status(t["PercentualCalculado"], t["PercentualLimite"])
+        t["Status"] = inv00_1.calcular_status(t["PercentualCalculado"], t["PercentualLimite"])
 
     # --------------------------------------------------------
     # AGREGAÇÃO POR SEGMENTO
@@ -231,7 +190,17 @@ def obter_dados():
     for s in segmentos.values():
         total_tipo = tipos[s["CodigoTipo"]]["Total"]
         s["PercentualCalculado"] = (s["Total"] / total_tipo) * 100 if total_tipo > 0 else 0
-        s["Status"] = calcular_status(s["PercentualCalculado"], s["PercentualLimite"])
+        s["Status"] = inv00_1.calcular_status(s["PercentualCalculado"], s["PercentualLimite"])
+
+        # Ajuste hierárquico: Segmento não pode ser mais "liberal" que o Tipo
+        status_tipo = tipos[s["CodigoTipo"]]["Status"]
+
+        # Se o tipo está vermelho → segmento também deve ficar vermelho
+        if status_tipo == COR_VERMELHO:
+            s["Status"] = COR_VERMELHO
+        # Se o tipo está amarelo → segmento pode ser verde ou amarelo, mas nunca vermelho
+        elif status_tipo == COR_AMARELO and s["Status"] == COR_VERDE:
+            s["Status"] = COR_AMARELO
 
     # --------------------------------------------------------
     # CÁLCULO DOS PERCENTUAIS E STATUS DOS ATIVOS
@@ -242,20 +211,31 @@ def obter_dados():
         a["PercentualCalculado"] = (a["TotalLocalizado"] / total_segmento) * 100 if total_segmento > 0 else 0
 
         # Status calculado originalmente do ativo (puro, sem hierarquia)
-        status_ativo_calc = calcular_status(a["PercentualCalculado"], a["PercentualLimiteAtivo"])
+        status_ativo_calc = inv00_1.calcular_status(a["PercentualCalculado"], a["PercentualLimiteAtivo"])
 
         status_tipo = tipos[a["CodigoTipo"]]["Status"]
         status_segmento = segmentos[a["CodigoSegmento"]]["Status"]
+        # --------------------------------------------------------
+        # REGRA ESPECIAL: ativo = 100% do segmento → herda o status do segmento
+        # --------------------------------------------------------
+        if a["PercentualCalculado"] >= 99.999:  # tolerância para floats
+            a["Status"] = status_segmento
 
-        # Regra 1: Tipo = Manter → tudo abaixo Manter
-        if eh_manter(status_tipo):
+        # --------------------------------------------------------
+        # REGRA 1: Tipo = Manter → tudo abaixo Manter
+        # --------------------------------------------------------
+        elif inv00_1.eh_manter(status_tipo):
             a["Status"] = COR_VERMELHO
 
-        # Regra 2: Tipo = Compra e Segmento = Manter → ativo Manter
-        elif eh_compra(status_tipo) and eh_manter(status_segmento):
+        # --------------------------------------------------------
+        # REGRA 2: Tipo = Compra e Segmento = Manter → ativo Manter
+        # --------------------------------------------------------
+        elif inv00_1.eh_compra(status_tipo) and inv00_1.eh_manter(status_segmento):
             a["Status"] = COR_VERMELHO
 
-        # Regra 3: Tipo = Compra e Segmento = Compra → ativo segue seu cálculo
+        # --------------------------------------------------------
+        # REGRA 3: Tipo = Compra e Segmento = Compra → ativo segue seu cálculo
+        # --------------------------------------------------------
         else:
             a["Status"] = status_ativo_calc
 
@@ -329,7 +309,7 @@ def abrir_grids(tipos, segmentos, ativos):
                 inv00_1.brstilo(t['Total']),
                 inv00_1.brstilo(t['PercentualLimite']),
                 inv00_1.brstilo(t['PercentualCalculado']),
-                traduzir_status(status),
+                inv00_1.traduzir_status(status),
             ),
             tags=(status,)
         )
@@ -378,7 +358,7 @@ def abrir_grids(tipos, segmentos, ativos):
                 inv00_1.brstilo(s['Total']),
                 inv00_1.brstilo(s['PercentualLimite']),
                 inv00_1.brstilo(s['PercentualCalculado']),
-                traduzir_status(status),
+                inv00_1.traduzir_status(status),
             ),
             tags=(status,)
         )
@@ -482,7 +462,7 @@ def abrir_grids(tipos, segmentos, ativos):
                 inv00_1.brstilo(a['ValorTotalCotacao']),
                 valor_unit,
                 total_brl,
-                traduzir_status(status_final)
+                inv00_1.traduzir_status(status_final)
             ),
             tags=(tag_linha, tag_status)
         )

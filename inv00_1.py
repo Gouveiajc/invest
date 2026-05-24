@@ -8,6 +8,11 @@ import yfinance as yf
 import tkinter as tk
 from tkinter import ttk
 
+#Definição de Cores 
+COR_VERDE = "VERDE"      # abaixo do limite → COMPRA
+COR_AMARELO = "AMARELO"  # próximo do limite → NEUTRO
+COR_VERMELHO = "VERMELHO"  # acima do limite → MANTER
+
 
 def validar_campos(cod, desc, seg, perc):
 
@@ -203,30 +208,6 @@ def obter_valor_atual(codigo, exterior="N"):
         print(f"Erro ao obter cotação de {ticker}: {e}")
         return None
     
-# ============================================================
-# BUSCA DE COTAÇÕES EM LOTE
-# ============================================================
-'''
-def obter_cotacoes_em_lote(lista_tickers):
-    if not lista_tickers:
-        return {}
-
-    dados = yf.download(lista_tickers, period="1d", group_by="ticker", progress=False)
-
-    cotacoes = {}
-
-    for t in lista_tickers:
-        try:
-            if len(lista_tickers) == 1:
-                preco = float(dados["Close"].iloc[-1])
-            else:
-                preco = float(dados[t]["Close"].iloc[-1])
-            cotacoes[t] = preco
-        except:
-            cotacoes[t] = 0.0
-
-    return cotacoes
-'''
 def obter_cotacoes_em_lote(lista_tickers):
     if not lista_tickers:
         return {}
@@ -307,3 +288,44 @@ def ajustar_ticker(ticker, exterior):
         return ticker
 
     return ticker + ".SA"
+
+# ============================================================
+# STATUS / REGRAS
+# ============================================================
+def calcular_status(percentual, limite):
+    """
+    Retorna:
+      VERDE    → percentual <= 85% do limite
+      AMARELO  → percentual <= 95% do limite
+      VERMELHO → acima de 95% do limite
+    """
+    if limite <= 0:
+        return ""
+
+    if percentual <= limite * 0.85:
+        return COR_VERDE
+    elif percentual <= limite * 0.95:
+        return COR_AMARELO
+    else:
+        return COR_VERMELHO
+
+def eh_compra(status):
+    return status in (COR_VERDE, COR_AMARELO)
+
+def eh_manter(status):
+    return status == COR_VERMELHO
+
+def traduzir_status(status):
+    """
+    Converte a cor lógica em texto para o grid:
+      VERDE    → Comprar
+      AMARELO  → Neutro
+      VERMELHO → Manter
+    """
+    if status == COR_VERDE:
+        return "Comprar"
+    elif status == COR_AMARELO:
+        return "Neutro"
+    elif status == COR_VERMELHO:
+        return "Manter"
+    return ""
