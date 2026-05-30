@@ -329,3 +329,13 @@ def traduzir_status(status):
     elif status == COR_VERMELHO:
         return "Manter"
     return ""
+
+def configurar_colunas(tree, config):
+    for col, (w, anchor) in config.items():
+        tree.heading(col, text=col)
+        tree.column(col, width=w, anchor=anchor)
+
+def configurar_tags(tree):
+    tree.tag_configure(COR_VERDE, foreground="green")
+    tree.tag_configure(COR_AMARELO, foreground="orange")
+    tree.tag_configure(COR_VERMELHO, foreground="red")
