@@ -504,6 +504,7 @@ def buscar_ativos_pagadores():
         FROM INV02 a
         LEFT JOIN INV01 s ON s.Inv01_05 = a.Inv02_05
         LEFT JOIN INV00 t ON t.Inv00_01 = a.Inv02_01
+        ORDER BY a.Inv02_05,a.Inv02_06
     """
 
     cur.execute(sql)
