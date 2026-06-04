@@ -10,6 +10,7 @@ Módulo: inv23_01.py
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+import threading
 import yfinance as yf  # mantido se usado em outros módulos
 import inv00_0
 import inv00_1
@@ -23,10 +24,21 @@ COR_VERMELHO = "VERMELHO"  # acima do limite → MANTER
 # ============================================================
 def executar_analise(root):
     aguarde = mostrar_aguarde(root)
-    root.after(100, lambda: processar_analise(root, aguarde))
+
+    # Executa a análise em thread separado
+    threading.Thread(
+        target=lambda: processar_analise(root, aguarde),
+        daemon=True
+    ).start()
 
 def processar_analise(root, aguarde):
+    # Tarefa pesada (roda fora do Tkinter)
     tipos, segmentos, ativos = obter_dados()
+
+    # Volta para o Tkinter (thread principal)
+    root.after(0, lambda: finalizar_analise(aguarde, tipos, segmentos, ativos))
+
+def finalizar_analise(aguarde, tipos, segmentos, ativos):
     aguarde.destroy()
     abrir_grids(tipos, segmentos, ativos)
 
@@ -47,7 +59,7 @@ def mostrar_aguarde(root):
     barra = ttk.Progressbar(janela, mode="indeterminate", length=250)
     barra.pack(pady=10)
     barra.start(10)
-    
+
     janela.update()
     return janela
 
@@ -170,7 +182,7 @@ def obter_dados():
 
     for t in tipos.values():
         t["PercentualCalculado"] = (t["Total"] / total_geral) * 100 if total_geral > 0 else 0
-        t["Status"] = inv00_1.calcular_status(t["PercentualCalculado"], t["PercentualLimite"])
+        t["StatusTipo"] = inv00_1.calcular_status(t["PercentualCalculado"], t["PercentualLimite"])
 
     # --------------------------------------------------------
     # AGREGAÇÃO POR SEGMENTO
@@ -192,18 +204,18 @@ def obter_dados():
     for s in segmentos.values():
         total_tipo = tipos[s["CodigoTipo"]]["Total"]
         s["PercentualCalculado"] = (s["Total"] / total_tipo) * 100 if total_tipo > 0 else 0
-        s["Status"] = inv00_1.calcular_status(s["PercentualCalculado"], s["PercentualLimite"])
+        s["StatusSeg"] = inv00_1.calcular_status(s["PercentualCalculado"], s["PercentualLimite"])
         s["TotalLim"] += total_tipo * s["PercentualLimite"] / 100
 
         # Ajuste hierárquico: Segmento não pode ser mais "liberal" que o Tipo
-        status_tipo = tipos[s["CodigoTipo"]]["Status"]
+        #status_tipo = tipos[s["CodigoTipo"]]["Status"]
 
         # Se o tipo está vermelho → segmento também deve ficar vermelho
-        if status_tipo == COR_VERMELHO:
-            s["Status"] = COR_VERMELHO
+        #if status_tipo == COR_VERMELHO:
+         #   s["Status"] = COR_VERMELHO
         # Se o tipo está amarelo → segmento pode ser verde ou amarelo, mas nunca vermelho
-        elif status_tipo == COR_AMARELO and s["Status"] == COR_VERDE:
-            s["Status"] = COR_AMARELO
+        #elif status_tipo == COR_AMARELO and s["Status"] == COR_VERDE:
+        #   s["Status"] = COR_AMARELO
 
     # --------------------------------------------------------
     # CÁLCULO DOS PERCENTUAIS E STATUS DOS ATIVOS
@@ -214,39 +226,34 @@ def obter_dados():
         a["PercentualCalculado"] = (a["TotalLocalizado"] / total_segmento) * 100 if total_segmento > 0 else 0
         a["TotalLimite"] = total_segmento * a["PercentualLimiteAtivo"] / 100
 
-        # Status calculado originalmente do ativo (puro, sem hierarquia)
-        status_ativo_calc = inv00_1.calcular_status(a["PercentualCalculado"], a["PercentualLimiteAtivo"])
-
-        status_tipo = tipos[a["CodigoTipo"]]["Status"]
-        status_segmento = segmentos[a["CodigoSegmento"]]["Status"]
+        # Status calculado originalmente do ativo 
+        a["StatusAtivo"] = inv00_1.calcular_status(a["PercentualCalculado"], a["PercentualLimiteAtivo"])
+        # Carrega Status do Tipo e Segmento
+        a["StatusTipo"] = tipos[a["CodigoTipo"]]["StatusTipo"]
+        a["StatusSeg"]  = segmentos[a["CodigoSegmento"]]["StatusSeg"]
         # --------------------------------------------------------
         # REGRA ESPECIAL: ativo = 100% do segmento → herda o status do segmento
         # --------------------------------------------------------
         if a["PercentualCalculado"] >= 99.999:  # tolerância para floats
-            a["Status"] = status_segmento
+            a["Status"] = a["StatusSeg"]
 
         # --------------------------------------------------------
         # REGRA 1: Tipo = Manter → tudo abaixo Manter
         # --------------------------------------------------------
-        elif inv00_1.eh_manter(status_tipo):
+        elif inv00_1.eh_manter(a["StatusTipo"]):
             a["Status"] = COR_VERMELHO
 
         # --------------------------------------------------------
         # REGRA 2: Tipo = Compra e Segmento = Manter → ativo Manter
         # --------------------------------------------------------
-        elif inv00_1.eh_compra(status_tipo) and inv00_1.eh_manter(status_segmento):
+        elif inv00_1.eh_compra(a["StatusTipo"]) and inv00_1.eh_manter(a["StatusSeg"]):
             a["Status"] = COR_VERMELHO
 
         # --------------------------------------------------------
         # REGRA 3: Tipo = Compra e Segmento = Compra → ativo segue seu cálculo
         # --------------------------------------------------------
         else:
-            a["Status"] = status_ativo_calc
-
-        # melhoria: guardar também status "puro" do ativo, se quiser analisar depois
-        a["StatusAtivoOriginal"] = status_ativo_calc
-        a["StatusTipo"] = status_tipo
-        a["StatusSegmento"] = status_segmento
+            a["Status"] = a["StatusAtivo"]
 
     return list(tipos.values()), list(segmentos.values()), ativos
 
@@ -298,12 +305,13 @@ def abrir_grids(tipos, segmentos, ativos):
     tree_tipos.heading("Status", text="Status")
     tree_tipos.column("Status", width=90, anchor="center")
 
+    tree_tipos.tag_configure("PRETO", foreground="black")
     tree_tipos.tag_configure("VERDE", foreground="green")
     tree_tipos.tag_configure("AMARELO", foreground="orange")
     tree_tipos.tag_configure("VERMELHO", foreground="red")
 
     for t in tipos:
-        status = t["Status"]
+        status = t["StatusTipo"]
         tree_tipos.insert(
             "",
             tk.END,
@@ -350,12 +358,13 @@ def abrir_grids(tipos, segmentos, ativos):
     tree_seg.heading("Status", text="Status")
     tree_seg.column("Status", width=90, anchor="center")
 
+    tree_seg.tag_configure("PRETO", foreground="black")
     tree_seg.tag_configure("VERDE", foreground="green")
     tree_seg.tag_configure("AMARELO", foreground="orange")
     tree_seg.tag_configure("VERMELHO", foreground="red")
 
     for s in segmentos:
-        status = s["Status"]
+        status = s["StatusSeg"]
         tree_seg.insert(
             "",
             tk.END,
@@ -427,6 +436,7 @@ def abrir_grids(tipos, segmentos, ativos):
     tree.column("Status", width=90, anchor="center")
 
     # cores da linha (status do ativo final)
+    tree.tag_configure("PRETO", foreground="black")
     tree.tag_configure("VERDE", foreground="green")
     tree.tag_configure("AMARELO", foreground="orange")
     tree.tag_configure("VERMELHO", foreground="red")
@@ -437,7 +447,7 @@ def abrir_grids(tipos, segmentos, ativos):
 
     for a in ativos:
         status_final = a["Status"]
-        status_original = a["StatusAtivoOriginal"]
+        status_original = a["StatusAtivo"]
 
         valor_unit = inv00_1.brstilo(a['ValorUnitario'])
         total_brl = inv00_1.brstilo(a['TotalLocalizado'])

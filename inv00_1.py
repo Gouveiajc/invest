@@ -9,9 +9,10 @@ import tkinter as tk
 from tkinter import ttk
 
 #Definição de Cores 
-COR_VERDE = "VERDE"      # abaixo do limite → COMPRA
+COR_VERDE = "VERDE"      # abaixo do limite → COMPRAR
 COR_AMARELO = "AMARELO"  # próximo do limite → NEUTRO
 COR_VERMELHO = "VERMELHO"  # acima do limite → MANTER
+COR_PRETO = "PRETO" # limite igual a zero → CONGELAR
 
 
 def validar_campos(cod, desc, seg, perc):
@@ -295,12 +296,13 @@ def ajustar_ticker(ticker, exterior):
 def calcular_status(percentual, limite):
     """
     Retorna:
+      PRETO    → limite = 0
       VERDE    → percentual <= 85% do limite
       AMARELO  → percentual <= 95% do limite
       VERMELHO → acima de 95% do limite
     """
     if limite <= 0:
-        return ""
+        return COR_PRETO
 
     if percentual <= limite * 0.85:
         return COR_VERDE
@@ -318,11 +320,14 @@ def eh_manter(status):
 def traduzir_status(status):
     """
     Converte a cor lógica em texto para o grid:
+      PRETO    → Congelar
       VERDE    → Comprar
       AMARELO  → Neutro
       VERMELHO → Manter
     """
-    if status == COR_VERDE:
+    if status == COR_PRETO:
+        return "Congelar"
+    elif status == COR_VERDE:
         return "Comprar"
     elif status == COR_AMARELO:
         return "Neutro"
