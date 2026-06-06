@@ -81,9 +81,6 @@ def gerar_pdf_ativos_nac():
         pdf.drawString(90,  y, str(descricao)[:25])
         pdf.drawString(250, y, f"{tipo} - {desc_tipo[:10]}")
         pdf.drawString(330, y, f"{segmento} - {desc_segmento[:10]}")
-    #    pdf.drawRightString(480, y, f"{valor_rs:,.2f}")
-    #    pdf.drawRightString(540, y, f"{custo_medio:,.2f}")
-    #    pdf.drawRightString(590, y, f"{pct:.2f}")
         pdf.drawRightString(480, y, inv00_1.brstilo(valor_rs))
         pdf.drawRightString(540, y, inv00_1.brstilo(custo_medio))
         pdf.drawRightString(590, y, inv00_1.brstilo(pct))
@@ -106,9 +103,4 @@ def gerar_pdf_ativos_nac():
 
     inv00_1.mensagem_sucesso("Relatório impresso com sucesso!")
 
-'''
-# Execução direta
-if __name__ == "__main__":
-    gerar_pdf_ativos()
-'''
     

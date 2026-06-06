@@ -472,7 +472,7 @@ def excluir_registro_inv03(conn, id_registro):
 # ------------------------------------------------------------
 # Buscar ativos para análise (todos os ativos cadastrados)
 # ------------------------------------------------------------
-def buscar_ativos_pagadores():
+def buscar_ativos():
     con = conectar()
     con.row_factory = sqlite3.Row
     cur = con.cursor()

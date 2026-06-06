@@ -77,7 +77,7 @@ def centralizar_janela(janela, largura, altura):
 # PROCESSAMENTO PRINCIPAL
 # ============================================================
 def obter_dados():
-    linhas = inv00_0.buscar_ativos_pagadores()
+    linhas = inv00_0.buscar_ativos()
     if not linhas:
         return [], [], []
 
@@ -122,13 +122,19 @@ def obter_dados():
             valor_unit_brl = preco_original * cotacao_moeda
             total_brl = valor_unit_brl * qtd
             valor_fallback = False
+            total_aquis = custo_brl
+            valoriza = ((total_brl/custo_brl) - 1) * 100 
         else:
             if exterior == "S":
                 total_brl = custo_usd * cotacao_moeda
+                total_aquis = custo_usd
+                valoriza = ((total_aquis/custo_usd) - 1) * 100
             else:
                 total_brl = custo_brl
+                total_aquis = custo_brl
+                valoriza = ((total_brl/custo_brl) - 1) * 100 
 
-            valor_unit_brl = total_brl / qtd if qtd else 0.0
+            valor_unit_brl = total_brl / qtd if qtd > 0.0 else 0.0
             valor_fallback = True  # valor baseado em custo, não em cotação
 
         ativo = {
@@ -151,8 +157,10 @@ def obter_dados():
             "ValorOriginal": preco_original,
             "ValorUnitario": valor_unit_brl,
             "ValorTotalCotacao": preco_original * qtd,
+            "ValorAquis": total_aquis,
             "TotalLocalizado": total_brl,
             "TotalLimite": 0.00,
+            "Valorizacao": valoriza,
 
             "AtivoExterior": exterior,
             "ValorFallback": valor_fallback,
@@ -183,6 +191,7 @@ def obter_dados():
     for t in tipos.values():
         t["PercentualCalculado"] = (t["Total"] / total_geral) * 100 if total_geral > 0 else 0
         t["StatusTipo"] = inv00_1.calcular_status(t["PercentualCalculado"], t["PercentualLimite"])
+        t["TotalLimTipo"] = total_geral * t["PercentualLimite"] / 100
 
     # --------------------------------------------------------
     # AGREGAÇÃO POR SEGMENTO
@@ -206,16 +215,6 @@ def obter_dados():
         s["PercentualCalculado"] = (s["Total"] / total_tipo) * 100 if total_tipo > 0 else 0
         s["StatusSeg"] = inv00_1.calcular_status(s["PercentualCalculado"], s["PercentualLimite"])
         s["TotalLim"] += total_tipo * s["PercentualLimite"] / 100
-
-        # Ajuste hierárquico: Segmento não pode ser mais "liberal" que o Tipo
-        #status_tipo = tipos[s["CodigoTipo"]]["Status"]
-
-        # Se o tipo está vermelho → segmento também deve ficar vermelho
-        #if status_tipo == COR_VERMELHO:
-         #   s["Status"] = COR_VERMELHO
-        # Se o tipo está amarelo → segmento pode ser verde ou amarelo, mas nunca vermelho
-        #elif status_tipo == COR_AMARELO and s["Status"] == COR_VERDE:
-        #   s["Status"] = COR_AMARELO
 
     # --------------------------------------------------------
     # CÁLCULO DOS PERCENTUAIS E STATUS DOS ATIVOS
@@ -267,7 +266,7 @@ def abrir_grids(tipos, segmentos, ativos):
 
     janela = tk.Toplevel()
     janela.title("Análise de Ativos")
-    janela.geometry("1500x750")
+    janela.geometry("1600x750")
 
     top_frame = tk.Frame(janela)
     top_frame.pack(fill="x")
@@ -284,7 +283,7 @@ def abrir_grids(tipos, segmentos, ativos):
     frame_tipos = ttk.Frame(notebook)
     notebook.add(frame_tipos, text="Tipos")
 
-    cols_tipos = ("Codigo", "Descricao", "Total", "%Limite",  "%Calc", "Status")
+    cols_tipos = ("Codigo", "Descricao", "Total", "%Calc", "TotalLim", "%Limite", "Status")
     tree_tipos = ttk.Treeview(frame_tipos, columns=cols_tipos, show="headings")
 
     tree_tipos.heading("Codigo", text="Codigo")
@@ -296,11 +295,14 @@ def abrir_grids(tipos, segmentos, ativos):
     tree_tipos.heading("Total", text="Total")
     tree_tipos.column("Total", width=120, anchor="e")
 
-    tree_tipos.heading("%Limite", text="%Limite")
-    tree_tipos.column("%Limite", width=80, anchor="center")
-
     tree_tipos.heading("%Calc", text="%Calc")
     tree_tipos.column("%Calc", width=80, anchor="center")
+
+    tree_tipos.heading("TotalLim", text="Total Limite")
+    tree_tipos.column("TotalLim", width=120, anchor="e")
+
+    tree_tipos.heading("%Limite", text="%Limite")
+    tree_tipos.column("%Limite", width=80, anchor="center")
 
     tree_tipos.heading("Status", text="Status")
     tree_tipos.column("Status", width=90, anchor="center")
@@ -319,8 +321,9 @@ def abrir_grids(tipos, segmentos, ativos):
                 t["Codigo"],
                 t["Descricao"],
                 inv00_1.brstilo(t['Total']),
+                inv00_1.brstilo(t['PercentualCalculado']),                
+                inv00_1.brstilo(t['TotalLimTipo']),
                 inv00_1.brstilo(t['PercentualLimite']),
-                inv00_1.brstilo(t['PercentualCalculado']),
                 inv00_1.traduzir_status(status),
             ),
             tags=(status,)
@@ -334,7 +337,7 @@ def abrir_grids(tipos, segmentos, ativos):
     frame_seg = ttk.Frame(notebook)
     notebook.add(frame_seg, text="Segmentos")
 
-    cols_seg = ("Codigo", "Descricao", "Total", "%Limite", "Valor Limite", "%Calc", "Status")
+    cols_seg = ("Codigo", "Descricao", "Total", "%Calc", "Valor Limite", "%Limite", "Status")
     tree_seg = ttk.Treeview(frame_seg, columns=cols_seg, show="headings")
 
     tree_seg.heading("Codigo", text="Codigo")
@@ -343,7 +346,7 @@ def abrir_grids(tipos, segmentos, ativos):
     tree_seg.heading("Descricao", text="Descricao")
     tree_seg.column("Descricao", width=250, anchor="w")
 
-    tree_seg.heading("Total", text="Total")
+    tree_seg.heading("Total", text="Valor Total")
     tree_seg.column("Total", width=120, anchor="e")
 
     tree_seg.heading("%Limite", text="%Limite")
@@ -372,9 +375,9 @@ def abrir_grids(tipos, segmentos, ativos):
                 s["Codigo"],
                 s["Descricao"],
                 inv00_1.brstilo(s['Total']),
-                inv00_1.brstilo(s['PercentualLimite']),
-                inv00_1.brstilo(s['TotalLim']),          
                 inv00_1.brstilo(s['PercentualCalculado']),
+                inv00_1.brstilo(s['TotalLim']),          
+                inv00_1.brstilo(s['PercentualLimite']),
                 inv00_1.traduzir_status(status),
             ),
             tags=(status,)
@@ -389,9 +392,9 @@ def abrir_grids(tipos, segmentos, ativos):
     notebook.add(frame_ativos, text="Ativos")
 
     colunas = (
-        "Codigo", "Descricao", "Segmento", "%Limite", "%Calc",
-        "Moeda", "Cotacao", "Quantidade", "ValorTotal", "TotalLimite", 
-        "VlrBRL", "TotalBRL", "Status"
+        "Codigo", "Descricao", "Segmento", "Quantidade", "ValorTotal", "%Calc", 
+        "TotalLimite", "%Limite", "Moeda", "Cotacao", "VlrBRL", "TotalBRL", "Aquisicao",
+        "Valorizacao","Status"
     )
 
     tree = ttk.Treeview(frame_ativos, columns=colunas, show="headings")
@@ -405,35 +408,41 @@ def abrir_grids(tipos, segmentos, ativos):
     tree.heading("Segmento", text="Segmento")
     tree.column("Segmento", width=180, anchor="w")
 
-    tree.heading("%Limite", text="%Limite")
-    tree.column("%Limite", width=80, anchor="center")
-
-    tree.heading("%Calc", text="%Calc")
-    tree.column("%Calc", width=80, anchor="center")
-
-    tree.heading("Moeda", text="Moeda")
-    tree.column("Moeda", width=70, anchor="center")
-
-    tree.heading("Cotacao", text="Cotacao")
-    tree.column("Cotacao", width=80, anchor="e")
-
     tree.heading("Quantidade", text="Quantidade")
-    tree.column("Quantidade", width=100, anchor="e")
+    tree.column("Quantidade", width=80, anchor="e")
 
     tree.heading("ValorTotal", text="ValorTotal")
     tree.column("ValorTotal", width=120, anchor="e")
 
+    tree.heading("%Calc", text="%Calc")
+    tree.column("%Calc", width=80, anchor="center")
+
     tree.heading("TotalLimite", text="Valor Limite")
     tree.column("TotalLimite", width=100, anchor="e")
+
+    tree.heading("%Limite", text="%Limite")
+    tree.column("%Limite", width=80, anchor="center")
+
+    tree.heading("Moeda", text="Moeda")
+    tree.column("Moeda", width=60, anchor="center")
+
+    tree.heading("Cotacao", text="Cotacao")
+    tree.column("Cotacao", width=80, anchor="e")
 
     tree.heading("VlrBRL", text="Cotação BRL")
     tree.column("VlrBRL", width=80, anchor="e")
 
     tree.heading("TotalBRL", text="TotalBRL")
-    tree.column("TotalBRL", width=140, anchor="e")
+    tree.column("TotalBRL", width=100, anchor="e")
+
+    tree.heading("Aquisicao", text="VlrAquis.")
+    tree.column("Aquisicao", width=100, anchor="e")
+
+    tree.heading("Valorizacao", text="% Valoriza.")
+    tree.column("Valorizacao", width=90, anchor="e")
 
     tree.heading("Status", text="Status")
-    tree.column("Status", width=90, anchor="center")
+    tree.column("Status", width=80, anchor="center")
 
     # cores da linha (status do ativo final)
     tree.tag_configure("PRETO", foreground="black")
@@ -475,15 +484,17 @@ def abrir_grids(tipos, segmentos, ativos):
                 a["CodigoAtivo"],
                 a["DescricaoAtivo"],
                 a["DescricaoSegmento"],
-                inv00_1.brstilo(a["PercentualLimiteAtivo"]),
-                inv00_1.brstilo(a['PercentualCalculado']),
-                a["Moeda"],
-                inv00_1.brstilo(a['Cotacao']),
                 a["Quantidade"],
                 inv00_1.brstilo(a['ValorTotalCotacao']),
+                inv00_1.brstilo(a['PercentualCalculado']),
                 inv00_1.brstilo(a["TotalLimite"]),
+                inv00_1.brstilo(a["PercentualLimiteAtivo"]),
+                a["Moeda"],
+                inv00_1.brstilo(a['Cotacao']),
                 valor_unit,
                 total_brl,
+                inv00_1.brstilo(a['ValorAquis']),
+                inv00_1.brstilo(a['Valorizacao']),
                 inv00_1.traduzir_status(status_final)
             ),
             tags=(tag_linha, tag_status)

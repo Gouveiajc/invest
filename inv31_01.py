@@ -48,7 +48,7 @@ def cabecalho(pdf, pagina):
 # ============================================================
 def montar_dados_relatorio(conn, cotacao_usd):
 
-    linhas = inv00_0.buscar_ativos_pagadores()
+    linhas = inv00_0.buscar_ativos()
     if not linhas:
         return [], {}, {}, 0, 0
 
