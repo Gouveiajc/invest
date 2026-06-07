@@ -123,16 +123,16 @@ def obter_dados():
             total_brl = valor_unit_brl * qtd
             valor_fallback = False
             total_aquis = custo_brl
-            valoriza = ((total_brl/custo_brl) - 1) * 100 
+            valoriza = inv00_1.valoriza(total_brl,custo_brl)
         else:
             if exterior == "S":
                 total_brl = custo_usd * cotacao_moeda
                 total_aquis = custo_usd
-                valoriza = ((total_aquis/custo_usd) - 1) * 100
+                valoriza = inv00_1.valoriza(total_aquis,custo_usd)
             else:
                 total_brl = custo_brl
                 total_aquis = custo_brl
-                valoriza = ((total_brl/custo_brl) - 1) * 100 
+                valoriza = inv00_1.valoriza(total_brl,custo_brl) 
 
             valor_unit_brl = total_brl / qtd if qtd > 0.0 else 0.0
             valor_fallback = True  # valor baseado em custo, não em cotação

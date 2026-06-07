@@ -27,19 +27,32 @@ def cabecalho(pdf, pagina):
     pdf.drawString(450, y, f"Data: {data}")
     pdf.drawString(520, y, f"Pág: {pagina}")
 
-    y -= 20
+    y -= 14
+    pdf.setFont("Times-Bold", 7)
+    pdf.drawString(260, y, "Un.")
+    pdf.drawString(300, y, "Un.")
+    pdf.drawString(340, y, "Vlr")
+    pdf.drawString(380, y, "Vlr")
+    pdf.drawString(420, y, "%")
+    pdf.drawString(450, y, "%")
+    pdf.drawString(470, y, "%")
+    pdf.drawString(500, y, "Vlr")
+    pdf.drawString(530, y, "%")
 
+    y -= 6
     pdf.setFont("Times-Bold", 7)
     pdf.drawString(50, y, "Código")
     pdf.drawString(120, y, "Descrição")
     pdf.drawString(230, y, "Qtd")
-    pdf.drawString(250, y, "Un.Atual R$")
-    pdf.drawString(300, y, "Un.Atual US$")
-    pdf.drawString(350, y, "Vlr Total R$")
-    pdf.drawString(400, y, "Vlr Total US$")
-    pdf.drawString(450, y, "% Investir")
-    pdf.drawString(490, y, "% Segmento")
-    pdf.drawString(535, y, "% Investido")
+    pdf.drawString(250, y, "Atual R$")
+    pdf.drawString(290, y, "Atual US$")
+    pdf.drawString(330, y, "Total R$")
+    pdf.drawString(370, y, "Total US$")
+    pdf.drawString(410, y, "Investir")
+    pdf.drawString(440, y, "Segm.")
+    pdf.drawString(460, y, "Investido")
+    pdf.drawString(490, y, "Investido")
+    pdf.drawString(520, y, "Valorização")
 
     pdf.line(30, 795, 570, 795)
 
@@ -101,16 +114,25 @@ def montar_dados_relatorio(conn, cotacao_usd):
         if usa_cotacao and preco_original > 0:
             valor_unit_brl = preco_original * cotacao_moeda
             valor_unit_usd = preco_original if exterior == "S" else 0
+            custo_aquis = custo_usd if exterior == "S" else custo_brl
         else:
             if exterior == "S":
+                custo_aquis = custo_usd
                 valor_unit_brl = (custo_usd * cotacao_moeda) / qtde
                 valor_unit_usd = custo_usd / qtde
             else:
+                custo_aquis = custo_brl
                 valor_unit_brl = custo_brl
                 valor_unit_usd = 0
 
         total_brl = valor_unit_brl * qtde
         total_usd = valor_unit_usd  * qtde if exterior == "S" else 0
+        
+        # Calcula Valorização
+        if exterior == "S":
+            valoriza = inv00_1.valoriza(total_usd,custo_aquis)
+        else:
+            valoriza = inv00_1.valoriza(total_brl,custo_aquis)
 
         # 5) Totais gerais
         total_geral_rs += total_brl
@@ -141,7 +163,9 @@ def montar_dados_relatorio(conn, cotacao_usd):
             "qtde": qtde,
             "valor_rs": valor_unit_brl,
             "valor_us": valor_unit_usd,
-            "perc_inv": float(r["Inv02_20"])
+            "perc_inv": float(r["Inv02_20"]),
+            "custo_inicial": custo_aquis,
+            "per_val": valoriza,
         })
 
     return rel, totais_tipo, totais_segmento, total_geral_rs, total_geral_us
@@ -205,13 +229,15 @@ def gerar_pdf_ativos_geral():
         pdf.drawString(50, y, f"{item['codigo']}")
         pdf.drawString(90, y, f"{item['descricao'][:40]}")
         pdf.drawRightString(240, y, f"{item['qtde']}")
-        pdf.drawRightString(290, y, inv00_1.brstilo(item['valor_rs']) )
-        pdf.drawRightString(340, y, inv00_1.brstilo(item['valor_us']) )
-        pdf.drawRightString(390, y, inv00_1.brstilo(valor_atual_rs) )
-        pdf.drawRightString(440, y, inv00_1.brstilo(valor_atual_us) )
-        pdf.drawRightString(480, y, inv00_1.brstilo(item['perc_inv']) )
-        pdf.drawRightString(520, y, inv00_1.brstilo(perc_seg_inv) )
-        pdf.drawRightString(560, y, inv00_1.brstilo(perc_total_inv) )
+        pdf.drawRightString(280, y, inv00_1.brstilo(item['valor_rs']) )
+        pdf.drawRightString(310, y, inv00_1.brstilo(item['valor_us']) )
+        pdf.drawRightString(360, y, inv00_1.brstilo(valor_atual_rs) )
+        pdf.drawRightString(400, y, inv00_1.brstilo(valor_atual_us) )
+        pdf.drawRightString(430, y, inv00_1.brstilo(item['perc_inv']) )
+        pdf.drawRightString(460, y, inv00_1.brstilo(perc_seg_inv) )
+        pdf.drawRightString(480, y, inv00_1.brstilo(perc_total_inv) )
+        pdf.drawRightString(520, y, inv00_1.brstilo(item["custo_inicial"]) )
+        pdf.drawRightString(550, y, inv00_1.brstilo(item["per_val"]) )
 
         y -= 8
 

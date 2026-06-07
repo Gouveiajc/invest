@@ -344,3 +344,7 @@ def configurar_tags(tree):
     tree.tag_configure(COR_VERDE, foreground="green")
     tree.tag_configure(COR_AMARELO, foreground="orange")
     tree.tag_configure(COR_VERMELHO, foreground="red")
+
+def valoriza(custo_fim,custo_ini):
+    valoriza = ((custo_fim/custo_ini) - 1) * 100
+    return(valoriza)
