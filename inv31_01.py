@@ -227,7 +227,9 @@ def gerar_pdf_ativos_geral():
         # DETALHE DO ATIVO
         pdf.setFont("Times-Roman", 6)
         pdf.drawString(50, y, f"{item['codigo']}")
-        pdf.drawString(90, y, f"{item['descricao'][:40]}")
+        desc = item['descricao']
+        desc = (desc[:30] + "...") if len(desc) > 30 else desc  #Limitando Descrição em 30 Caracteres
+        pdf.drawString(90, y, desc)
         pdf.drawRightString(240, y, f"{item['qtde']}")
         pdf.drawRightString(280, y, inv00_1.brstilo(item['valor_rs']) )
         pdf.drawRightString(310, y, inv00_1.brstilo(item['valor_us']) )
