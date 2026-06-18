@@ -23,7 +23,7 @@ COR_VERMELHO = "VERMELHO"  # acima do limite → MANTER
 # JANELA DE AGUARDE
 # ============================================================
 def executar_analise(root):
-    aguarde = mostrar_aguarde(root)
+    aguarde = inv00_1.mostrar_aguarde(root)
 
     # Executa a análise em thread separado
     threading.Thread(
@@ -41,37 +41,6 @@ def processar_analise(root, aguarde):
 def finalizar_analise(aguarde, tipos, segmentos, ativos):
     aguarde.destroy()
     abrir_grids(tipos, segmentos, ativos)
-
-def mostrar_aguarde(root):
-    janela = tk.Toplevel(root)
-    janela.title("Aguarde")
-    janela.resizable(False, False)
-
-    centralizar_janela(janela, 300, 150)
-
-    tk.Label(
-        janela,
-        text="Pesquisando dados...\nPor favor, aguarde.",
-        font=("Arial", 12),
-        pady=10
-    ).pack()
-
-    barra = ttk.Progressbar(janela, mode="indeterminate", length=250)
-    barra.pack(pady=10)
-    barra.start(10)
-
-    janela.update()
-    return janela
-
-def centralizar_janela(janela, largura, altura):
-    janela.update_idletasks()
-    largura_tela = janela.winfo_screenwidth()
-    altura_tela = janela.winfo_screenheight()
-
-    x = (largura_tela // 2) - (largura // 2)
-    y = (altura_tela // 2) - (altura // 2)
-
-    janela.geometry(f"{largura}x{altura}+{x}+{y}")
 
 # ============================================================
 # PROCESSAMENTO PRINCIPAL
@@ -499,6 +468,16 @@ def abrir_grids(tipos, segmentos, ativos):
             ),
             tags=(tag_linha, tag_status)
         )
+    # --------------------------------------------------------
+    # CÁLCULO DE TOTAIS GERAIS
+    # --------------------------------------------------------
+    total_geral = sum(a["ValorTotalCotacao"] for a in ativos)
+    # --------------------------------------------------------
+    # EXIBIR RESULTADO NO GRID ATIVOS
+    # --------------------------------------------------------
+    label_aviso = ttk.Label(frame_ativos, text="  Valor Total R$ " + inv00_1.brstilo(total_geral), 
+        foreground="red", font=("Arial", 12, "bold"))
+    label_aviso.pack(anchor="w", pady=(0, 5))
 
     tree.pack(fill="both", expand=True)
 

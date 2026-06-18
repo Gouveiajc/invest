@@ -14,47 +14,113 @@ Módulo: inv31_01.py
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from datetime import datetime
+# Importa query e funções auxiliares
+import threading
+import tkinter as tk
 import inv00_0
 import inv00_1
 
-def cabecalho(pdf, pagina):
-    y = 820 
-    pdf.setFont("Times-Bold", 11)
-    pdf.drawString(30, y, "RELATÓRIO DE ATIVOS - GERAL")
+# ============================================================
+# Função principal chamada pelo Menu
+# ============================================================
+def gerar_pdf_ativos_geral(root):
 
-    data = datetime.now().strftime("%d/%m/%Y")
-    pdf.setFont("Times-Roman", 7)
-    pdf.drawString(450, y, f"Data: {data}")
-    pdf.drawString(520, y, f"Pág: {pagina}")
+    # Abre janela de aguarde
+    aguarde = inv00_1.mostrar_aguarde(root)
 
-    y -= 14
-    pdf.setFont("Times-Bold", 7)
-    pdf.drawString(260, y, "Un.")
-    pdf.drawString(300, y, "Un.")
-    pdf.drawString(340, y, "Vlr")
-    pdf.drawString(380, y, "Vlr")
-    pdf.drawString(420, y, "%")
-    pdf.drawString(450, y, "%")
-    pdf.drawString(470, y, "%")
-    pdf.drawString(500, y, "Vlr")
-    pdf.drawString(530, y, "%")
+    # Executa o processamento em thread separada
+    threading.Thread(
+        target=lambda: gerar_pdf_geral(root, aguarde),
+        daemon=True
+    ).start()
 
-    y -= 6
-    pdf.setFont("Times-Bold", 7)
-    pdf.drawString(50, y, "Código")
-    pdf.drawString(120, y, "Descrição")
-    pdf.drawString(230, y, "Qtd")
-    pdf.drawString(250, y, "Atual R$")
-    pdf.drawString(290, y, "Atual US$")
-    pdf.drawString(330, y, "Total R$")
-    pdf.drawString(370, y, "Total US$")
-    pdf.drawString(410, y, "Investir")
-    pdf.drawString(440, y, "Segm.")
-    pdf.drawString(460, y, "Investido")
-    pdf.drawString(490, y, "Investido")
-    pdf.drawString(520, y, "Valorização")
+# ============================================================
+# GERAÇÃO DO PDF 
+# ============================================================
+def gerar_pdf_geral(root,aguarde):
 
-    pdf.line(30, 795, 570, 795)
+    conn = inv00_0.conectar()
+    cotacao_usd = inv00_1.obter_cotacao_moeda("USD")
+
+    rel, totais_tipo, totais_segmento, total_geral_rs, total_geral_us = montar_dados_relatorio(conn, cotacao_usd)
+
+    rel.sort(key=lambda x: (x["tipo"], x["segmento"], x["codigo"]))
+
+    pdf = canvas.Canvas("ativos_geral.pdf", pagesize=A4)
+    pagina = 1
+    y = 790
+
+    cabecalho(pdf, pagina)
+
+    tipo_atual = None
+    segmento_atual = None
+
+    for item in rel:
+
+        # QUEBRA DE TIPO
+        if item["tipo"] != tipo_atual:
+            y -= 5
+            tipo_atual = item["tipo"]
+            desc_tp_atual = item["desc_tipo"]
+            perc_alvo_00 = item["perc_tp"]
+            valor_tipo = totais_tipo[tipo_atual]
+            perc_tipo = (valor_tipo / total_geral_rs) * 100
+
+            pdf.setFont("Times-Bold", 8)
+            pdf.drawString(30, y, f"TIPO {tipo_atual} {desc_tp_atual} -  Perc.Limite {perc_alvo_00} - Total R$ {valor_tipo:,.2f} ({perc_tipo:.2f}%)")
+            y -= 10
+
+        # QUEBRA DE SEGMENTO
+        if item["segmento"] != segmento_atual:
+            segmento_atual = item["segmento"]
+            desc_seg_atual = item["desc_seg"]
+            perc_alvo_01 = item["perc_seg"]
+            valor_seg = totais_segmento[tipo_atual][segmento_atual]
+            perc_seg = (valor_seg / valor_tipo) * 100
+
+            pdf.setFont("Times-Bold", 7)
+            pdf.drawString(40, y, f"Segmento {segmento_atual} {desc_seg_atual} - Perc.Limite {perc_alvo_01} - R$ {valor_seg:,.2f} ({perc_seg:.2f}%)")
+            y -= 10
+
+        #Calculo Valor Total Atual
+        valor_atual_rs = item['qtde'] * item['valor_rs']
+        valor_atual_us = item['qtde'] * item['valor_us']
+        perc_seg_inv = (valor_atual_rs / valor_seg) * 100
+        perc_total_inv = (valor_atual_rs / total_geral_rs) * 100
+
+        # DETALHE DO ATIVO
+        pdf.setFont("Times-Roman", 6)
+        pdf.drawString(50, y, f"{item['codigo']}")
+        desc = item['descricao']
+        desc = (desc[:30] + "...") if len(desc) > 30 else desc  #Limitando Descrição em 30 Caracteres
+        pdf.drawString(90, y, desc)
+        pdf.drawRightString(240, y, f"{item['qtde']}")
+        pdf.drawRightString(280, y, inv00_1.brstilo(item['valor_rs']) )
+        pdf.drawRightString(310, y, inv00_1.brstilo(item['valor_us']) )
+        pdf.drawRightString(360, y, inv00_1.brstilo(valor_atual_rs) )
+        pdf.drawRightString(400, y, inv00_1.brstilo(valor_atual_us) )
+        pdf.drawRightString(430, y, inv00_1.brstilo(item['perc_inv']) )
+        pdf.drawRightString(460, y, inv00_1.brstilo(perc_seg_inv) )
+        pdf.drawRightString(480, y, inv00_1.brstilo(perc_total_inv) )
+        pdf.drawRightString(520, y, inv00_1.brstilo(item["custo_inicial"]) )
+        pdf.drawRightString(550, y, inv00_1.brstilo(item["per_val"]) )
+
+        y -= 8
+
+        if y < 50:
+            pdf.showPage()
+            pagina += 1
+            y = 780
+            cabecalho(pdf, pagina)
+
+    pdf.setFont("Times-Bold", 8)
+    pdf.drawString(30, y - 20, f"TOTAL GERAL R$: {total_geral_rs:,.2f}")
+    pdf.drawString(30, y - 35, f"TOTAL ATIVOS EXTERIOR US$: {total_geral_us:,.2f}")
+
+    pdf.save()
+    conn.close()
+
+    inv00_1.mensagem_sucesso("Relatório impresso com sucesso!",root,aguarde)
 
 # ============================================================
 # NOVA FUNÇÃO — CÁLCULOS CORRIGIDOS (inv23_01)
@@ -170,90 +236,41 @@ def montar_dados_relatorio(conn, cotacao_usd):
 
     return rel, totais_tipo, totais_segmento, total_geral_rs, total_geral_us
 
-# ============================================================
-# GERAÇÃO DO PDF 
-# ============================================================
-def gerar_pdf_ativos_geral():
+def cabecalho(pdf, pagina):
+    y = 820 
+    pdf.setFont("Times-Bold", 11)
+    pdf.drawString(30, y, "RELATÓRIO DE ATIVOS - GERAL")
 
-    conn = inv00_0.conectar()
-    cotacao_usd = inv00_1.obter_cotacao_moeda("USD")
+    data = datetime.now().strftime("%d/%m/%Y")
+    pdf.setFont("Times-Roman", 7)
+    pdf.drawString(450, y, f"Data: {data}")
+    pdf.drawString(520, y, f"Pág: {pagina}")
 
-    rel, totais_tipo, totais_segmento, total_geral_rs, total_geral_us = montar_dados_relatorio(conn, cotacao_usd)
+    y -= 14
+    pdf.setFont("Times-Bold", 7)
+    pdf.drawString(260, y, "Un.")
+    pdf.drawString(300, y, "Un.")
+    pdf.drawString(340, y, "Vlr")
+    pdf.drawString(380, y, "Vlr")
+    pdf.drawString(420, y, "%")
+    pdf.drawString(450, y, "%")
+    pdf.drawString(470, y, "%")
+    pdf.drawString(500, y, "Vlr")
+    pdf.drawString(530, y, "%")
 
-    rel.sort(key=lambda x: (x["tipo"], x["segmento"], x["codigo"]))
+    y -= 6
+    pdf.setFont("Times-Bold", 7)
+    pdf.drawString(50, y, "Código")
+    pdf.drawString(120, y, "Descrição")
+    pdf.drawString(230, y, "Qtd")
+    pdf.drawString(250, y, "Atual R$")
+    pdf.drawString(290, y, "Atual US$")
+    pdf.drawString(330, y, "Total R$")
+    pdf.drawString(370, y, "Total US$")
+    pdf.drawString(410, y, "Investir")
+    pdf.drawString(440, y, "Segm.")
+    pdf.drawString(460, y, "Investido")
+    pdf.drawString(490, y, "Investido")
+    pdf.drawString(520, y, "Valorização")
 
-    pdf = canvas.Canvas("ativos_geral.pdf", pagesize=A4)
-    pagina = 1
-    y = 790
-
-    cabecalho(pdf, pagina)
-
-    tipo_atual = None
-    segmento_atual = None
-
-    for item in rel:
-
-        # QUEBRA DE TIPO
-        if item["tipo"] != tipo_atual:
-            y -= 5
-            tipo_atual = item["tipo"]
-            desc_tp_atual = item["desc_tipo"]
-            perc_alvo_00 = item["perc_tp"]
-            valor_tipo = totais_tipo[tipo_atual]
-            perc_tipo = (valor_tipo / total_geral_rs) * 100
-
-            pdf.setFont("Times-Bold", 8)
-            pdf.drawString(30, y, f"TIPO {tipo_atual} {desc_tp_atual} -  Perc.Limite {perc_alvo_00} - Total R$ {valor_tipo:,.2f} ({perc_tipo:.2f}%)")
-            y -= 10
-
-        # QUEBRA DE SEGMENTO
-        if item["segmento"] != segmento_atual:
-            segmento_atual = item["segmento"]
-            desc_seg_atual = item["desc_seg"]
-            perc_alvo_01 = item["perc_seg"]
-            valor_seg = totais_segmento[tipo_atual][segmento_atual]
-            perc_seg = (valor_seg / valor_tipo) * 100
-
-            pdf.setFont("Times-Bold", 7)
-            pdf.drawString(40, y, f"Segmento {segmento_atual} {desc_seg_atual} - Perc.Limite {perc_alvo_01} - R$ {valor_seg:,.2f} ({perc_seg:.2f}%)")
-            y -= 10
-
-        #Calculo Valor Total Atual
-        valor_atual_rs = item['qtde'] * item['valor_rs']
-        valor_atual_us = item['qtde'] * item['valor_us']
-        perc_seg_inv = (valor_atual_rs / valor_seg) * 100
-        perc_total_inv = (valor_atual_rs / total_geral_rs) * 100
-
-        # DETALHE DO ATIVO
-        pdf.setFont("Times-Roman", 6)
-        pdf.drawString(50, y, f"{item['codigo']}")
-        desc = item['descricao']
-        desc = (desc[:30] + "...") if len(desc) > 30 else desc  #Limitando Descrição em 30 Caracteres
-        pdf.drawString(90, y, desc)
-        pdf.drawRightString(240, y, f"{item['qtde']}")
-        pdf.drawRightString(280, y, inv00_1.brstilo(item['valor_rs']) )
-        pdf.drawRightString(310, y, inv00_1.brstilo(item['valor_us']) )
-        pdf.drawRightString(360, y, inv00_1.brstilo(valor_atual_rs) )
-        pdf.drawRightString(400, y, inv00_1.brstilo(valor_atual_us) )
-        pdf.drawRightString(430, y, inv00_1.brstilo(item['perc_inv']) )
-        pdf.drawRightString(460, y, inv00_1.brstilo(perc_seg_inv) )
-        pdf.drawRightString(480, y, inv00_1.brstilo(perc_total_inv) )
-        pdf.drawRightString(520, y, inv00_1.brstilo(item["custo_inicial"]) )
-        pdf.drawRightString(550, y, inv00_1.brstilo(item["per_val"]) )
-
-        y -= 8
-
-        if y < 50:
-            pdf.showPage()
-            pagina += 1
-            y = 780
-            cabecalho(pdf, pagina)
-
-    pdf.setFont("Times-Bold", 8)
-    pdf.drawString(30, y - 20, f"TOTAL GERAL R$: {total_geral_rs:,.2f}")
-    pdf.drawString(30, y - 35, f"TOTAL ATIVOS EXTERIOR US$: {total_geral_us:,.2f}")
-
-    pdf.save()
-    conn.close()
-
-    inv00_1.mensagem_sucesso("Relatório impresso com sucesso!")
+    pdf.line(30, 795, 570, 795)

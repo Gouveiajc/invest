@@ -252,25 +252,42 @@ def obter_cotacoes_em_lote(lista_tickers):
 # ============================================================
 # MENSAGENS
 # ============================================================
-def mensagem_sucesso(texto):
-    janela = tk.Toplevel()
-    janela.title("Informação")
-    janela.geometry("300x120")
-    janela.resizable(False, False)
+def mensagem_sucesso(texto, root, aguarde):
+    aguarde.destroy()
 
-    janela.update_idletasks()
     largura = 300
     altura = 120
-    x = (janela.winfo_screenwidth() // 2) - (largura // 2)
-    y = (janela.winfo_screenheight() // 2) - (altura // 2)
-    janela.geometry(f"{largura}x{altura}+{x}+{y}")
 
+    janela = tk.Toplevel(root)
+    janela.title("Informação")
+    janela.resizable(False, False)
+    janela.transient(root)
     janela.grab_set()
 
-    lbl = ttk.Label(janela, text=texto, font=("Arial", 11))
-    lbl.pack(pady=15)
+    # Primeiro mostra a janela
+    janela.update_idletasks()
 
-    btn = ttk.Button(janela, text="OK", command=janela.destroy)
+    # Agora sim pega posição e tamanho reais do root
+    root_x = root.winfo_rootx()
+    root_y = root.winfo_rooty()
+    root_w = root.winfo_width()
+    root_h = root.winfo_height()
+
+    # Calcula centro
+    x = root_x + (root_w // 2) - (largura // 2)
+    y = root_y + (root_h // 2) - (altura // 2)
+
+    # Aplica a posição FINAL
+    janela.geometry(f"{largura}x{altura}+{x}+{y}")
+
+    # Conteúdo centralizado
+    frame = tk.Frame(janela)
+    frame.pack(expand=True, fill="both")
+
+    lbl = ttk.Label(frame, text=texto, font=("Arial", 11), anchor="center", justify="center")
+    lbl.pack(pady=10)
+
+    btn = ttk.Button(frame, text="OK", command=janela.destroy)
     btn.pack(pady=5)
 
 # ============================================================
@@ -348,3 +365,37 @@ def configurar_tags(tree):
 def valoriza(custo_fim,custo_ini):
     valoriza = ((custo_fim/custo_ini) - 1) * 100
     return(valoriza)
+
+# ============================================================
+# JANELA AGUARDE
+# ============================================================
+def mostrar_aguarde(root):
+    janela = tk.Toplevel(root)
+    janela.title("Aguarde")
+    janela.resizable(False, False)
+
+    centralizar_janela(janela, 300, 150)
+
+    tk.Label(
+        janela,
+        text="Pesquisando dados...\nPor favor, aguarde.",
+        font=("Arial", 12),
+        pady=10
+    ).pack()
+
+    barra = ttk.Progressbar(janela, mode="indeterminate", length=250)
+    barra.pack(pady=10)
+    barra.start(10)
+
+    janela.update()
+    return janela
+
+def centralizar_janela(janela, largura, altura):
+    janela.update_idletasks()
+    largura_tela = janela.winfo_screenwidth()
+    altura_tela = janela.winfo_screenheight()
+
+    x = (largura_tela // 2) - (largura // 2)
+    y = (altura_tela // 2) - (altura // 2)
+
+    janela.geometry(f"{largura}x{altura}+{x}+{y}")

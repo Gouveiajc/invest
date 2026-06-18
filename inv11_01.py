@@ -118,7 +118,6 @@ def abrir_lista(root):
         command=lambda: inv11_03.alterar_registro(tree, atualizar_grid)
     )
 
-
 # -----------------------------
 #       FUNÇÕES AUXILIARES
 # -----------------------------

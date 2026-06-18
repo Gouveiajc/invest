@@ -17,41 +17,31 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from datetime import datetime
 from tkinter import ttk
-
 # Importa query e funções auxiliares
+import threading
+import tkinter as tk
 import tkinter as tk
 import inv00_0 
 import inv00_1
 
-# ------------------------------------------------------------
-# Função para desenhar cabeçalho em cada página
-# ------------------------------------------------------------
-def cabecalho(pdf, pagina):
-    data_hoje = datetime.now().strftime("%d/%m/%Y")
+# ============================================================
+# Função principal chamada pelo Menu
+# ============================================================
+def gerar_pdf_ativos_nac(root):
 
-    pdf.setFont("Times-Bold", 12)
-    pdf.drawString(30, 820, "RELATÓRIO DE ATIVOS NACIONAIS")
+    # Abre janela de aguarde
+    aguarde = inv00_1.mostrar_aguarde(root)
 
-    # Data + Página
-    pdf.setFont("Times-Roman", 9)
-    pdf.drawString(420, 820, f"Data: {data_hoje}")
-    pdf.drawString(500, 820, f"Página {pagina}")
-
-    # Cabeçalho das colunas
-    pdf.setFont("Times-Bold", 9)
-    y = 800
-    pdf.drawString(30,  y, "Código")
-    pdf.drawString(90,  y, "Descrição")
-    pdf.drawString(250, y, "Tipo")
-    pdf.drawString(330, y, "Segmento")
-    pdf.drawString(420, y, "Aquisição (R$)")
-    pdf.drawString(490, y, "Custo Médio (R$)")
-    pdf.drawString(560, y, "% Alvo")
+    # Executa o processamento em thread separada
+    threading.Thread(
+        target=lambda: gerar_pdf_nac(root, aguarde),
+        daemon=True
+    ).start()
 
 # ------------------------------------------------------------
 # Função principal para gerar PDF
 # ------------------------------------------------------------
-def gerar_pdf_ativos_nac():
+def gerar_pdf_nac(root,aguarde):
 
     # Conexão com banco
     conn = inv00_0.conectar()
@@ -101,6 +91,29 @@ def gerar_pdf_ativos_nac():
     pdf.save()
     conn.close()
 
-    inv00_1.mensagem_sucesso("Relatório impresso com sucesso!")
+    inv00_1.mensagem_sucesso("Relatório impresso com sucesso!",root,aguarde)
 
-    
+    # ------------------------------------------------------------
+# Função para desenhar cabeçalho em cada página
+# ------------------------------------------------------------
+def cabecalho(pdf, pagina):
+    data_hoje = datetime.now().strftime("%d/%m/%Y")
+
+    pdf.setFont("Times-Bold", 12)
+    pdf.drawString(30, 820, "RELATÓRIO DE ATIVOS NACIONAIS")
+
+    # Data + Página
+    pdf.setFont("Times-Roman", 9)
+    pdf.drawString(420, 820, f"Data: {data_hoje}")
+    pdf.drawString(500, 820, f"Página {pagina}")
+
+    # Cabeçalho das colunas
+    pdf.setFont("Times-Bold", 9)
+    y = 800
+    pdf.drawString(30,  y, "Código")
+    pdf.drawString(90,  y, "Descrição")
+    pdf.drawString(250, y, "Tipo")
+    pdf.drawString(330, y, "Segmento")
+    pdf.drawString(420, y, "Aquisição (R$)")
+    pdf.drawString(490, y, "Custo Médio (R$)")
+    pdf.drawString(560, y, "% Alvo")
