@@ -42,7 +42,7 @@ def gerar_pdf_geral(root,aguarde):
     conn = inv00_0.conectar()
     cotacao_usd = inv00_1.obter_cotacao_moeda("USD")
 
-    rel, totais_tipo, totais_segmento, total_geral_rs, total_geral_us = montar_dados_relatorio(conn, cotacao_usd)
+    rel, totais_tipo, totais_segmento, total_geral_rs, total_geral_us, total_geral_br = montar_dados_relatorio(conn, cotacao_usd)
 
     rel.sort(key=lambda x: (x["tipo"], x["segmento"], x["codigo"]))
 
@@ -67,7 +67,7 @@ def gerar_pdf_geral(root,aguarde):
             perc_tipo = (valor_tipo / total_geral_rs) * 100
 
             pdf.setFont("Times-Bold", 8)
-            pdf.drawString(30, y, f"TIPO {tipo_atual} {desc_tp_atual} -  Perc.Limite {perc_alvo_00} - Total R$ {valor_tipo:,.2f} ({perc_tipo:.2f}%)")
+            pdf.drawString(30, y, f"TIPO {tipo_atual} {desc_tp_atual} -  Perc.Limite {perc_alvo_00}% - Total R$ {valor_tipo:,.2f} ({perc_tipo:.2f}%)")
             y -= 10
 
         # QUEBRA DE SEGMENTO
@@ -79,7 +79,7 @@ def gerar_pdf_geral(root,aguarde):
             perc_seg = (valor_seg / valor_tipo) * 100
 
             pdf.setFont("Times-Bold", 7)
-            pdf.drawString(40, y, f"Segmento {segmento_atual} {desc_seg_atual} - Perc.Limite {perc_alvo_01} - R$ {valor_seg:,.2f} ({perc_seg:.2f}%)")
+            pdf.drawString(40, y, f"Segmento {segmento_atual} {desc_seg_atual} - Perc.Limite {perc_alvo_01}% - R$ {valor_seg:,.2f} ({perc_seg:.2f}%)")
             y -= 10
 
         #Calculo Valor Total Atual
@@ -114,8 +114,9 @@ def gerar_pdf_geral(root,aguarde):
             cabecalho(pdf, pagina)
 
     pdf.setFont("Times-Bold", 8)
-    pdf.drawString(30, y - 20, f"TOTAL GERAL R$: {total_geral_rs:,.2f}")
+    pdf.drawString(30, y - 20, f"TOTAL ATIVOS NACIONAL R$: {total_geral_br:,.2f}")
     pdf.drawString(30, y - 35, f"TOTAL ATIVOS EXTERIOR US$: {total_geral_us:,.2f}")
+    pdf.drawString(30, y - 50, f"TOTAL GERAL R$: {total_geral_rs:,.2f}")
 
     pdf.save()
     conn.close()
@@ -134,6 +135,7 @@ def montar_dados_relatorio(conn, cotacao_usd):
     rel = []
     total_geral_rs = 0
     total_geral_us = 0
+    total_geral_br = 0
 
     totais_tipo = {}
     totais_segmento = {}
@@ -203,6 +205,7 @@ def montar_dados_relatorio(conn, cotacao_usd):
         # 5) Totais gerais
         total_geral_rs += total_brl
         total_geral_us += total_usd
+        total_geral_br += total_brl if exterior == "N" else 0
 
         # 6) Totais por tipo
         if tipo not in totais_tipo:
@@ -234,7 +237,7 @@ def montar_dados_relatorio(conn, cotacao_usd):
             "per_val": valoriza,
         })
 
-    return rel, totais_tipo, totais_segmento, total_geral_rs, total_geral_us
+    return rel, totais_tipo, totais_segmento, total_geral_rs, total_geral_us, total_geral_br
 
 def cabecalho(pdf, pagina):
     y = 820 
@@ -265,7 +268,7 @@ def cabecalho(pdf, pagina):
     pdf.drawString(230, y, "Qtd")
     pdf.drawString(250, y, "Atual R$")
     pdf.drawString(290, y, "Atual US$")
-    pdf.drawString(330, y, "Total R$")
+    pdf.drawString(330, y, "Atual R$")
     pdf.drawString(370, y, "Total US$")
     pdf.drawString(410, y, "Investir")
     pdf.drawString(440, y, "Segm.")
