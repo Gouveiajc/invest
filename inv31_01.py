@@ -7,7 +7,6 @@ Banco de Dados inv.db
 Tabela inv02
 Módulo: inv31_01.py
 '''
-
 # ============================================================
 # inv31_01.py - Impressão de Ativos Geral Por Tipo e Segmento
 # ============================================================
@@ -92,7 +91,7 @@ def gerar_pdf_geral(root,aguarde):
         pdf.setFont("Times-Roman", 6)
         pdf.drawString(50, y, f"{item['codigo']}")
         desc = item['descricao']
-        desc = (desc[:30] + "...") if len(desc) > 30 else desc  #Limitando Descrição em 30 Caracteres
+        desc = (desc[:30] + "...") if len(desc) > 30 else desc  # Limitando Descrição em 30 Caracteres
         pdf.drawString(90, y, desc)
         pdf.drawRightString(240, y, f"{item['qtde']}")
         pdf.drawRightString(280, y, inv00_1.brstilo(item['valor_rs']) )
@@ -143,7 +142,7 @@ def montar_dados_relatorio(conn, cotacao_usd):
     # 1) Monta lista de tickers
     tickers = []
     for r in linhas:
-        if r["Inv02_22"] == "S":  # usa cotação
+        if r["Inv02_22"] == "S":  # Busca Valor Atual do Ativo
             tickers.append(inv00_1.ajustar_ticker(r["Inv02_06"], r["Inv02_17"]))
 
     # 2) Obtém cotações em lote
@@ -178,7 +177,7 @@ def montar_dados_relatorio(conn, cotacao_usd):
         moeda = "USD" if exterior == "S" else "BRL"
         cotacao_moeda = inv00_1.obter_cotacao_moeda(moeda)
 
-        # 4) Cálculo correto do valor (mesma lógica da inv23_01)
+        # 4) Cálculo do valor atual
         if usa_cotacao and preco_original > 0:
             valor_unit_brl = preco_original * cotacao_moeda
             valor_unit_usd = preco_original if exterior == "S" else 0
@@ -269,7 +268,7 @@ def cabecalho(pdf, pagina):
     pdf.drawString(250, y, "Atual R$")
     pdf.drawString(290, y, "Atual US$")
     pdf.drawString(330, y, "Atual R$")
-    pdf.drawString(370, y, "Total US$")
+    pdf.drawString(370, y, "Atual US$")
     pdf.drawString(410, y, "Investir")
     pdf.drawString(440, y, "Segm.")
     pdf.drawString(460, y, "Investido")
@@ -277,3 +276,4 @@ def cabecalho(pdf, pagina):
     pdf.drawString(520, y, "Valorização")
 
     pdf.line(30, 795, 570, 795)
+

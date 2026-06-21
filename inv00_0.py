@@ -504,7 +504,7 @@ def buscar_ativos():
         FROM INV02 a
         LEFT JOIN INV01 s ON s.Inv01_05 = a.Inv02_05
         LEFT JOIN INV00 t ON t.Inv00_01 = a.Inv02_01
-        WHERE INV02_07 IS NOT 0 AND INV02_20 IS NOT 0
+        WHERE (INV02_07 IS NOT 0 OR INV02_20 IS NOT 0)
         ORDER BY a.Inv02_05,a.Inv02_06
     """
 
