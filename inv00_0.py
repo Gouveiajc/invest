@@ -466,6 +466,21 @@ def excluir_registro_inv03(conn, id_registro):
     cursor.execute("DELETE FROM INV03 WHERE INV03_00 = ?", (id_registro,))
     conn.commit()
 
+# ---------------------------------------------------------
+# Buscar movimentos do ativo na impressão dos movimentos 
+# ---------------------------------------------------------
+def buscar_movimentos_ativo(conn, codigo):
+    sql = """
+        SELECT inv03_06, inv03_02, inv03_12, inv03_07,
+               inv03_13, inv03_14, inv03_18
+        FROM inv03
+        WHERE inv03_06 = ?
+        ORDER BY inv03_18
+    """
+    cur = conn.cursor()
+    cur.execute(sql, (codigo,))
+    return cur.fetchall()
+
 # ============================================================
 #   TABELA INV04 — DIVIDENDOS
 # ============================================================

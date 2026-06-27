@@ -16,6 +16,7 @@ import inv24_01
 import inv31_01
 import inv31_02
 import inv31_03
+import inv31_04
 
 class App:
 
@@ -93,6 +94,10 @@ class App:
         menu_impressao.add_command(
             label="Impressão de Ativos Exterior", 
             command=lambda: inv31_03.gerar_pdf_ativos_ext(root)
+        )
+        menu_impressao.add_command(
+            label="Impressão de Movimentação", 
+            command=lambda: inv31_04.gerar_pdf_movim(root)
         )
         menu_bar.add_cascade(label="Impressão", menu=menu_impressao)
 

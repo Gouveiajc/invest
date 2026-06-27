@@ -6,6 +6,7 @@ Ver 1
 '''
 import yfinance as yf
 import tkinter as tk
+from datetime import datetime
 from tkinter import ttk
 
 #Definição de Cores 
