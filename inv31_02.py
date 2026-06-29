@@ -68,12 +68,13 @@ def gerar_pdf_nac(root,aguarde):
         total_aquisicao += valor_rs
 
         pdf.drawString(30,  y, str(codigo))
-        pdf.drawString(90,  y, str(descricao)[:25])
-        pdf.drawString(250, y, f"{tipo} - {desc_tipo[:10]}")
-        pdf.drawString(330, y, f"{segmento} - {desc_segmento[:10]}")
-        pdf.drawRightString(480, y, inv00_1.brstilo(valor_rs))
-        pdf.drawRightString(540, y, inv00_1.brstilo(custo_medio))
-        pdf.drawRightString(590, y, inv00_1.brstilo(pct))
+        pdf.drawString(70,  y, str(descricao)[:25])
+        pdf.drawString(210, y, f"{tipo} - {desc_tipo[:10]}")
+        pdf.drawString(290, y, f"{segmento} - {desc_segmento[:10]}")
+        pdf.drawRightString(390, y, inv00_1.brstilo(qtde))
+        pdf.drawRightString(450, y, inv00_1.brstilo(valor_rs))
+        pdf.drawRightString(500, y, inv00_1.brstilo(custo_medio))
+        pdf.drawRightString(550, y, inv00_1.brstilo(pct))
 
         y -= 12
 
@@ -85,8 +86,8 @@ def gerar_pdf_nac(root,aguarde):
 
     #Imprime Total
     pdf.setFont("Times-Bold",9)
-    pdf.drawRightString(420, y - 10, "Total: ")
-    pdf.drawRightString(480, y - 10, inv00_1.brstilo(total_aquisicao))
+    pdf.drawRightString(400, y - 10, "Total: ")
+    pdf.drawRightString(460, y - 10, inv00_1.brstilo(total_aquisicao))
         
     pdf.save()
     conn.close()
@@ -108,12 +109,13 @@ def cabecalho(pdf, pagina):
     pdf.drawString(500, 820, f"Página {pagina}")
 
     # Cabeçalho das colunas
-    pdf.setFont("Times-Bold", 9)
+    pdf.setFont("Times-Bold", 7)
     y = 800
     pdf.drawString(30,  y, "Código")
-    pdf.drawString(90,  y, "Descrição")
-    pdf.drawString(250, y, "Tipo")
-    pdf.drawString(330, y, "Segmento")
-    pdf.drawString(420, y, "Aquisição (R$)")
-    pdf.drawString(490, y, "Custo Médio (R$)")
-    pdf.drawString(560, y, "% Alvo")
+    pdf.drawString(70,  y, "Descrição")
+    pdf.drawString(230, y, "Tipo")
+    pdf.drawString(310, y, "Segmento")
+    pdf.drawString(370, y, "Qtde")
+    pdf.drawString(410, y, "Aquisição (R$)")
+    pdf.drawString(470, y, "Custo Médio (R$)")
+    pdf.drawString(530, y, "% Alvo")

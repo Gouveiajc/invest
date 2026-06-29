@@ -141,8 +141,13 @@ def iso_compacto_para_br(data_iso):
 # ============================================================
 #   FUNÇÕES DE CONVERSÃO PONTOS E VIRGULAS
 # ============================================================
+# Formata 2 casas decimais
 def brstilo(num):
     return f"{num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# Formata 6 casas decimais
+def brstilo6(num):
+    return f"{num:,.6f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # ============================================================
 # COTAÇÃO DE MOEDA
