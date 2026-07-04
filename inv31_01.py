@@ -113,10 +113,10 @@ def gerar_pdf_geral(root,aguarde):
             cabecalho(pdf, pagina)
 
     pdf.setFont("Times-Bold", 8)
-    pdf.drawString(30, y - 20, f"TOTAL ATIVOS NACIONAL R$: {inv00_1.brstilo(total_geral_br)}")
+    pdf.drawString(30, y - 20, f"TOTAL ATIVOS NACIONAL R$: {inv00_1.brstilo(total_geral_br)} ({(total_geral_br/total_geral_rs) * 100:.2f}%)")
     #pdf.drawString(30, y - 35, f"TOTAL ATIVOS EXTERIOR US$: {total_geral_us:,.2f}")
-    pdf.drawString(30, y - 35, f"TOTAL ATIVOS EXTERIOR R$: {inv00_1.brstilo(total_geral_us * cotacao_usd)}  US$: {inv00_1.brstilo(total_geral_us)}")
-    pdf.drawString(30, y - 50, f"TOTAL GERAL R$: {inv00_1.brstilo(total_geral_rs)}")
+    pdf.drawString(30, y - 35, f"TOTAL ATIVOS EXTERIOR R$: {inv00_1.brstilo(total_geral_us * cotacao_usd)}  US$: {inv00_1.brstilo(total_geral_us)} ({((total_geral_us * cotacao_usd)/total_geral_rs) * 100:.2f}%)")
+    pdf.drawString(30, y - 50, f"TOTAL GERAL R$: {inv00_1.brstilo(total_geral_rs)} ({100.00:.2f}%)" )
 
     pdf.save()
     conn.close()
