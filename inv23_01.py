@@ -471,7 +471,7 @@ def abrir_grids(tipos, segmentos, ativos):
     # --------------------------------------------------------
     # CÁLCULO DE TOTAIS GERAIS
     # --------------------------------------------------------
-    total_geral = sum(a["ValorTotalCotacao"] for a in ativos)
+    total_geral = sum(a["TotalLocalizado"] for a in ativos)
     # --------------------------------------------------------
     # EXIBIR RESULTADO NO GRID ATIVOS
     # --------------------------------------------------------
