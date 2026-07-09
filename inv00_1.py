@@ -89,7 +89,6 @@ def validar_campos_inv02(cod, desc, tipo, segm, atv, data, peri):
     # Tudo OK
     return True, "", ""
 
-
 def validar_campos_inv03(reg):
   
     # Código

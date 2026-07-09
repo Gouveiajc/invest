@@ -169,11 +169,16 @@ def montar_dados_relatorio(conn, cotacao_usd):
         exterior = r["Inv02_17"]  # S/N
         usa_cotacao = r["Inv02_22"] == "S"
 
-        custo_brl = float(r["Inv02_09"])
-        custo_usd = float(r["Inv02_10"])
+        custo_brl = float(r["Inv02_09"]) if r["Inv02_09"] is not None else 0.0
+        custo_usd = float(r["Inv02_10"]) if r["Inv02_10"] is not None else 0.0
 
         ticker = inv00_1.ajustar_ticker(codigo, exterior)
-        preco_original = cotacoes.get(ticker, 0.0)
+        #preco_original = cotacoes.get(ticker, 0.0)
+        preco_original = cotacoes.get(ticker)
+        if exterior == "S":
+            preco_original = r["Inv02_23"] if preco_original in (None, 0, 0.0) else preco_original
+        else:
+            preco_original = r["Inv02_08"] if preco_original in (None, 0, 0.0) else preco_original
 
         moeda = "USD" if exterior == "S" else "BRL"
         cotacao_moeda = inv00_1.obter_cotacao_moeda(moeda)
@@ -186,11 +191,11 @@ def montar_dados_relatorio(conn, cotacao_usd):
         else:
             if exterior == "S":
                 custo_aquis = custo_usd
-                valor_unit_brl = (custo_usd * cotacao_moeda) / qtde
-                valor_unit_usd = custo_usd / qtde
+                valor_unit_brl = (preco_original * cotacao_moeda) / qtde
+                valor_unit_usd = preco_original / qtde
             else:
                 custo_aquis = custo_brl
-                valor_unit_brl = custo_brl
+                valor_unit_brl = preco_original
                 valor_unit_usd = 0
 
         total_brl = valor_unit_brl * qtde

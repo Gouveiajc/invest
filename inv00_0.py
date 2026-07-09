@@ -501,10 +501,12 @@ def buscar_ativos():
             a.Inv02_01,
             a.Inv02_20,
             a.Inv02_07,
+            a.Inv02_08,
             a.Inv02_09,
             a.Inv02_10,
             a.Inv02_17,
             a.Inv02_22,
+            a.Inv02_23,
 
             -- SEGMENTO
             s.Inv01_05,

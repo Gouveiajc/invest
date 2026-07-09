@@ -15,6 +15,7 @@ import yfinance as yf  # mantido se usado em outros módulos
 import inv00_0
 import inv00_1
 
+COR_PRETO = "PRETO"     # percentual zero → CONGELA
 COR_VERDE = "VERDE"      # abaixo do limite → COMPRA
 COR_AMARELO = "AMARELO"  # próximo do limite → NEUTRO
 COR_VERMELHO = "VERMELHO"  # acima do limite → MANTER
@@ -73,11 +74,16 @@ def obter_dados():
         exterior = r["Inv02_17"]
         usa_cotacao = r["Inv02_22"] == "S"
 
-        custo_brl = float(r["Inv02_09"])
-        custo_usd = float(r["Inv02_10"])
+        custo_brl = float(r["Inv02_09"]) if r["Inv02_09"] is not None else 0.0
+        custo_usd = float(r["Inv02_10"]) if r["Inv02_10"] is not None else 0.0
 
         ticker = inv00_1.ajustar_ticker(r["Inv02_06"], exterior)
-        preco_original = cotacoes.get(ticker, 0.0)
+        #preco_original = cotacoes.get(ticker, 0.0)
+        preco_original = cotacoes.get(ticker)
+        if exterior == "S":
+            preco_original = r["Inv02_23"] if preco_original in (None, 0, 0.0) else preco_original
+        else:
+            preco_original = r["Inv02_08"] if preco_original in (None, 0, 0.0) else preco_original
 
         moeda = "USD" if exterior == "S" else "BRL"
         cotacao_moeda = inv00_1.obter_cotacao_moeda(moeda)
@@ -200,28 +206,22 @@ def obter_dados():
         a["StatusTipo"] = tipos[a["CodigoTipo"]]["StatusTipo"]
         a["StatusSeg"]  = segmentos[a["CodigoSegmento"]]["StatusSeg"]
         # --------------------------------------------------------
-        # REGRA ESPECIAL: ativo = 100% do segmento → herda o status do segmento
+        # REGRA ESPECIAL: ativo = 100% do segmento → herda o status do segmento ou do tipo
         # --------------------------------------------------------
-        if a["PercentualCalculado"] >= 99.999:  # tolerância para floats
-            a["Status"] = a["StatusSeg"]
-
-        # --------------------------------------------------------
-        # REGRA 1: Tipo = Manter → tudo abaixo Manter
-        # --------------------------------------------------------
-        elif inv00_1.eh_manter(a["StatusTipo"]):
-            a["Status"] = COR_VERMELHO
-
-        # --------------------------------------------------------
-        # REGRA 2: Tipo = Compra e Segmento = Manter → ativo Manter
-        # --------------------------------------------------------
-        elif inv00_1.eh_compra(a["StatusTipo"]) and inv00_1.eh_manter(a["StatusSeg"]):
-            a["Status"] = COR_VERMELHO
-
-        # --------------------------------------------------------
-        # REGRA 3: Tipo = Compra e Segmento = Compra → ativo segue seu cálculo
-        # --------------------------------------------------------
-        else:
-            a["Status"] = a["StatusAtivo"]
+        if a["PercentualLimiteAtivo"] > 99.999:  # tolerância para floats
+            if s["PercentualLimite"] > 99.999:
+                a["Status"] = t["StatusTipo"]
+            else:
+                a["Status"] = a["StatusSeg"]
+        else:        # REGRA STATUS: Tipo = Vermelho ou preto → tudo manter abaixo vermelho ou preto
+            if a["StatusAtivo"] in (COR_VERMELHO, COR_PRETO):
+                a["Status"] = a["StatusAtivo"]
+            elif a["StatusTipo"] in (COR_VERMELHO, COR_PRETO):
+                a["Status"] = a["StatusTipo"]
+            elif a["StatusSeg"] in (COR_VERMELHO, COR_PRETO):
+                a["Status"] = a["StatusSeg"]
+            else:
+                a["Status"] = a["StatusAtivo"]
 
     return list(tipos.values()), list(segmentos.values()), ativos
 
@@ -282,7 +282,6 @@ def abrir_grids(tipos, segmentos, ativos):
     tree_tipos.tag_configure("VERMELHO", foreground="red")
 
     for t in tipos:
-        status = t["StatusTipo"]
         tree_tipos.insert(
             "",
             tk.END,
@@ -293,9 +292,9 @@ def abrir_grids(tipos, segmentos, ativos):
                 inv00_1.brstilo(t['PercentualCalculado']),                
                 inv00_1.brstilo(t['TotalLimTipo']),
                 inv00_1.brstilo(t['PercentualLimite']),
-                inv00_1.traduzir_status(status),
+                t["StatusTipo"],
             ),
-            tags=(status,)
+            tags=(t["StatusTipo"],)
         )
 
     tree_tipos.pack(fill="both", expand=True)
@@ -336,7 +335,6 @@ def abrir_grids(tipos, segmentos, ativos):
     tree_seg.tag_configure("VERMELHO", foreground="red")
 
     for s in segmentos:
-        status = s["StatusSeg"]
         tree_seg.insert(
             "",
             tk.END,
@@ -347,9 +345,9 @@ def abrir_grids(tipos, segmentos, ativos):
                 inv00_1.brstilo(s['PercentualCalculado']),
                 inv00_1.brstilo(s['TotalLim']),          
                 inv00_1.brstilo(s['PercentualLimite']),
-                inv00_1.traduzir_status(status),
+                s["StatusSeg"],
             ),
-            tags=(status,)
+            tags=(s["StatusSeg"],)
         )
 
     tree_seg.pack(fill="both", expand=True)
@@ -419,6 +417,7 @@ def abrir_grids(tipos, segmentos, ativos):
     tree.tag_configure("AMARELO", foreground="orange")
     tree.tag_configure("VERMELHO", foreground="red")
 
+    tree.tag_configure("STATUS_PRETO", foreground="black")
     tree.tag_configure("STATUS_VERDE", foreground="green")
     tree.tag_configure("STATUS_AMARELO", foreground="orange")
     tree.tag_configure("STATUS_VERMELHO", foreground="red")
@@ -443,8 +442,10 @@ def abrir_grids(tipos, segmentos, ativos):
             tag_status = "STATUS_VERDE"
         elif status_final == COR_AMARELO:
             tag_status = "STATUS_AMARELO"
-        else:
+        elif status_final == COR_VERMELHO:
             tag_status = "STATUS_VERMELHO"
+        else:
+            tag_status = "STATUS_PRETO"
 
         tree.insert(
             "",
