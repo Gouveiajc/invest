@@ -386,7 +386,7 @@ def listar_ativos_inv02_geral(conn):
         FROM Inv02 A
         LEFT JOIN Inv00 T ON T.Inv00_01 = A.Inv02_01
         LEFT JOIN Inv01 S ON S.Inv01_05 = A.Inv02_05
-        ORDER BY A.Inv02_01, A.Inv02_05, A.Inv02_06
+        ORDER BY A.Inv02_01, A.Inv02_06
         ''')
 
     dados = cursor.fetchall()

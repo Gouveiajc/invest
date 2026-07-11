@@ -6,9 +6,10 @@ Ver 1
 Banco de Dados inv.db
 Tabela inv02 e inv03
 Módulo: inv31_04.py
+
 '''
 import sqlite3
-from tkinter import Tk, Button, messagebox
+from tkinter import Tk, Button, messagebox, Toplevel
 from tkinter import ttk
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -24,8 +25,11 @@ def gerar_pdf_movim(root):
     conn = inv00_0.conectar()
     dados = inv00_0.listar_ativos_inv02_geral(conn)
 
-    janela = Tk()
+    # JAMAIS criar outro Tk() — sempre Toplevel
+    janela = Toplevel(root)
     janela.title("Impressão de Movimento de Ativos")
+    janela.geometry("1000x600")
+    janela.grab_set()  # mantém interação dentro da janela
 
     colunas = (
         "Codigo", "Descricao", "Quantidade", "CustoMedio",
@@ -54,7 +58,7 @@ def gerar_pdf_movim(root):
     for linha in dados:
         tree.insert("", "end", values=[linha[idx[col]] for col in colunas])
 
-    tree.pack(pady=10)
+    tree.pack(pady=10, fill="both", expand=True)
 
     # ---------------------------------------------------------
     # Botão IMPRIMIR
@@ -65,6 +69,7 @@ def gerar_pdf_movim(root):
 
         if not item:
             messagebox.showwarning("Aviso", "Selecione um ativo para imprimir.")
+            tree.focus_set()
             return
 
         valores = tree.item(item)["values"]
@@ -74,17 +79,21 @@ def gerar_pdf_movim(root):
 
         if not movimentos:
             messagebox.showinfo("Aviso", "Este ativo não possui movimentos.")
+            tree.focus_set()
+            tree.selection_set(item)
             return
 
         gerar_pdf_movimento(codigo, movimentos, valores, pagina)
+
+        tree.focus_set()
+        tree.selection_set(item)
 
     # ---------------------------------------------------------
     # Botão RETORNAR AO MENU
     # ---------------------------------------------------------
     def retornar():
-        janela.destroy()   # fecha a janela e volta ao menu principal
+        janela.destroy()
 
-    # Frame de botões lado a lado
     botoes = ttk.Frame(janela)
     botoes.pack(pady=10)
 
@@ -94,7 +103,6 @@ def gerar_pdf_movim(root):
     btn_retornar = Button(botoes, text="Retornar", width=15, command=retornar)
     btn_retornar.grid(row=0, column=1, padx=10)
 
-    janela.mainloop()
 
 # ---------------------------------------------------------
 # Função que gera o PDF
@@ -110,14 +118,12 @@ def gerar_pdf_movimento(codigo, movimentos, valores, pagina):
     pdf.setFont("Times-Bold", 14)
     pdf.drawString(50, y, f"Movimentação do Ativo {codigo}")
 
-    # Data + Página
     pdf.setFont("Times-Roman", 10)
     pdf.drawString(420, y, f"Data: {data_hoje}")
     pdf.drawString(500, y, f"Página {pagina}")
 
     y -= 15
 
-    # Limitar tamanho do texto
     texto = valores[1]
     limite = 20
     if len(texto) > limite:
@@ -127,7 +133,6 @@ def gerar_pdf_movimento(codigo, movimentos, valores, pagina):
     pdf.drawString(200, y, "Quantidade: ")
     pdf.drawString(260, y, valores[2])
 
-    # Cabeçalho da tabela
     pdf.setFont("Times-Bold", 10)
     y -= 15
     pdf.drawString(50,  y, "Data")
@@ -138,11 +143,11 @@ def gerar_pdf_movimento(codigo, movimentos, valores, pagina):
 
     pdf.line(50, y-2, 550, y-2)
 
-    # Linhas da tabela
     pdf.setFont("Times-Roman", 10)
     y -= 15
 
     ntot_mov = 0
+    nval_mov = 0
 
     for mov in movimentos:
         cod, desc, tipo, qtd, vlr_unit, vlr_tot, data = mov
@@ -151,6 +156,7 @@ def gerar_pdf_movimento(codigo, movimentos, valores, pagina):
             qtd = -abs(qtd)
 
         mov_desc = {
+            "B": "Bonificação",
             "C": "Compra",
             "V": "Venda",
             "D": "Desdobramento"
@@ -162,21 +168,26 @@ def gerar_pdf_movimento(codigo, movimentos, valores, pagina):
         pdf.drawRightString(370, y, f"{vlr_unit:,.2f}")
         pdf.drawRightString(460, y, f"{vlr_tot:,.2f}")
 
-        y -= 10
+        y -= 15
         ntot_mov += qtd
+        nval_mov += vlr_tot
 
-        # Nova página
         if y < 50:
             pagina += 1
             pdf.showPage()
             pdf.setFont("Times-Roman", 10)
             y = 800
 
-    # Conferência de quantidade
+    pdf.setFont("Times-Bold", 10)        
+    pdf.drawString(120, y, "Total Movimento: ")    
+    pdf.drawRightString(280, y, f"{ntot_mov}")
+    pdf.drawRightString(460, y, f"{nval_mov:,.2f}")
+
     if ntot_mov != float(valores[2]):
-        y -= 10
+        y -= 20
         pdf.setFont("Times-Bold", 12)
-        pdf.drawString(100, y, f"Atenção: Quantidade diferente do movimento {ntot_mov}")
+        pdf.drawString(100, y, f"Atenção: Quantidade diferente da quantidade do movimento ")
 
     pdf.save()
+
     messagebox.showinfo("PDF Gerado", f"Arquivo criado: {nome_pdf}")

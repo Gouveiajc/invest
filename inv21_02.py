@@ -137,7 +137,7 @@ def abrir_janela_inv03(root, tree):
     combo_codigo.bind("<<ComboboxSelected>>", atualizar_descricao)
 
     labels = {
-        "INV03_12": "Tp Mov. (C/D/V):",
+        "INV03_12": "Tp Mov. (B/C/D/V):",
         "INV03_07": "Quantidade:",
         "INV03_13": "Valor Unitário:",
         "INV03_14": "Valor Total R$:",
@@ -153,7 +153,7 @@ def abrir_janela_inv03(root, tree):
         ttk.Label(frame, text=texto).grid(row=row, column=0, sticky="w", pady=5)
 
         if campo == "INV03_12":
-            entrada = ttk.Combobox(frame, values=["C", "D", "V"], width=10, state="readonly")
+            entrada = ttk.Combobox(frame, values=["B", "C", "D", "V"], width=10, state="readonly")
         elif campo in ["INV03_14", "INV03_16"]:
             entrada = ttk.Entry(frame, width=30, state="readonly")
         else:
